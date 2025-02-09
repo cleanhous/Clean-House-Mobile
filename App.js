@@ -5,7 +5,7 @@ export default function App() {
   return (
     <View style={styles.container}>
       <Text>Open up Afpp.js to start working on your app!</Text>
-      <Text>Olasdaaaaaaaaaaaaaaa</Text>
+      <Text>Hello Mobile</Text>
       <StatusBar style="auto" />
     </View>
   );
