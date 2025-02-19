@@ -1,6 +1,11 @@
 import React, { useState } from "react";
-import { 
-  View, Text, TextInput, TouchableOpacity, ActivityIndicator, StyleSheet 
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  ActivityIndicator,
+  StyleSheet,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 
@@ -9,16 +14,20 @@ const Login = () => {
   const [senha, setSenha] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+
   const navigation = useNavigation();
 
   const handleSubmit = () => {
     setIsLoading(true);
     setErrorMessage("");
 
+    // Simulação de autenticação (setTimeout)
     setTimeout(() => {
       if (email === "teste@example.com" && senha === "123456") {
-        navigation.navigate("Home"); // Exemplo: Navegaria para uma tela Home
+        // Navega para Home caso o login seja bem-sucedido
+        navigation.navigate("Home");
       } else {
+        // Exibe mensagem de erro caso falhe
         setErrorMessage("Usuário ou senha incorretos. Tente novamente.");
       }
       setIsLoading(false);
@@ -28,6 +37,7 @@ const Login = () => {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Faça seu Login</Text>
+
       <TextInput
         style={styles.input}
         placeholder="Email"
@@ -35,6 +45,7 @@ const Login = () => {
         value={email}
         onChangeText={setEmail}
       />
+
       <TextInput
         style={styles.input}
         placeholder="Senha"
@@ -42,23 +53,33 @@ const Login = () => {
         value={senha}
         onChangeText={setSenha}
       />
+
       {errorMessage ? <Text style={styles.error}>{errorMessage}</Text> : null}
-      <TouchableOpacity style={styles.button} onPress={handleSubmit} disabled={isLoading}>
+
+      <TouchableOpacity
+        style={styles.button}
+        onPress={handleSubmit}
+        disabled={isLoading}
+      >
         {isLoading ? (
           <ActivityIndicator size="small" color="#fff" />
         ) : (
           <Text style={styles.buttonText}>Login</Text>
         )}
       </TouchableOpacity>
+
       <TouchableOpacity>
         <Text style={styles.link}>Esqueceu a senha?</Text>
       </TouchableOpacity>
+
       <TouchableOpacity>
         <Text style={styles.link}>Não tem uma conta? Registre-se</Text>
       </TouchableOpacity>
     </View>
   );
 };
+
+export default Login;
 
 const styles = StyleSheet.create({
   container: {
@@ -103,5 +124,3 @@ const styles = StyleSheet.create({
     textDecorationLine: "underline",
   },
 });
-
-export default Login;
