@@ -1,6 +1,6 @@
 import React from "react";
 import { ScrollView, View, Text, StyleSheet, Dimensions } from "react-native";
-// Import dos ícones do lucide-react-native
+
 import {
   PlugZap,
   Droplet,
@@ -17,14 +17,14 @@ import {
 const Home = () => {
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      {/* Cabeçalho */}
+      
       <View style={styles.headerSection}>
         <Text style={styles.placeholderText}>
           Aqui ficava o header (NavBar, logo etc.)
         </Text>
       </View>
 
-      {/* Prévia de Alguns Serviços */}
+     
       <View style={styles.servicesPreview}>
         <Text style={styles.servicesTitle}>
           Aqui ficava a prévia de serviços
@@ -45,7 +45,7 @@ const Home = () => {
         </View>
       </View>
 
-      {/* Seção Promocional */}
+      
       <View style={styles.promotionSection}>
         <Handshake size={80} color="#0284c7" />
         <Text style={styles.promoTitle}>Aqui ficava a seção promocional</Text>
@@ -54,7 +54,7 @@ const Home = () => {
         </Text>
       </View>
 
-      {/* Todos os Serviços (Grade) */}
+    
       <View style={styles.allServicesSection}>
         <Text style={styles.allServicesTitle}>
           Aqui ficava a lista completa de serviços
@@ -87,14 +87,14 @@ const Home = () => {
         </View>
       </View>
 
-      {/* Seção FAQ (removida, apenas texto) */}
+     
       <View>
-        <Text style={styles.placeholderText}>Aqui ficava o FAQ</Text>
+        <Text style={styles.placeholderText}>Aqui fica o FAQ</Text>
       </View>
 
-      {/* Footer (removido, apenas texto) */}
+     
       <View>
-        <Text style={styles.placeholderText}>Aqui ficava o Footer</Text>
+        <Text style={styles.placeholderText}>Aqui fica o Footer</Text>
       </View>
     </ScrollView>
   );
