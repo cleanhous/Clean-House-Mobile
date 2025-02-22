@@ -72,7 +72,7 @@ const Login = () => {
         <Text style={styles.link}>Esqueceu a senha?</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity>
+      <TouchableOpacity onPress={() => navigation.navigate("Cadastrar")}>
         <Text style={styles.link}>Não tem uma conta? Registre-se</Text>
       </TouchableOpacity>
     </View>
