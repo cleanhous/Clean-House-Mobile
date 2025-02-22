@@ -11,8 +11,8 @@ import {
   Alert,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
-import cep from "../services/cep"; 
-//import api from "../services/api"; 
+import cep from "../services/cep";
+import api from "../services/api";
 
 const Cadastro = () => {
   const [nome, setNome] = useState("");
@@ -34,6 +34,7 @@ const Cadastro = () => {
 
   const navigation = useNavigation();
 
+  // Função para formatar o CPF
   const formatarCpf = (value) => {
     value = value.replace(/\D/g, "");
     value = value.replace(/(\d{3})(\d)/, "$1.$2");
@@ -47,6 +48,7 @@ const Cadastro = () => {
     setCpf(cpfFormatado);
   };
 
+  // Função para buscar o CEP usando a API ViaCEP
   const buscarCep = async () => {
     const cepValue = cepInput.replace(/\D/g, "");
     if (cepValue.length !== 8) {
@@ -68,34 +70,73 @@ const Cadastro = () => {
       setUf(data.uf);
       setCidade(data.localidade);
     } catch (error) {
-      console.log(error);
+      console.log("Erro ao buscar CEP:", error);
       Alert.alert("Erro", "Não foi possível buscar o CEP");
     }
   };
 
-  // sem api
-const handleRegister = async () => {
- 
-  setShowSuccessModal(true);
-  setTimeout(() => {
-    setShowSuccessModal(false);
-    navigation.navigate("Login");
-  }, 2000);
+  // Função para enviar o cadastro ao backend
+  const handleRegister = async () => {
+    if (!termoAceito) {
+      Alert.alert(
+        "Erro",
+        "Você precisa aceitar os termos de política e privacidade"
+      );
+      return;
+    }
 
-  setNome("");
-  setEmail("");
-  setCpf("");
-  setTelefone("");
-  setSenha("");
-  setComplemento("");
-  setUf("");
-  setCepInput("");
-  setBairro("");
-  setLogradouro("");
-  setCidade("");
-  setNumero("");
-  setTermoAceito(false);
-};
+    try {
+      const response = await api.post("/cadastro", {
+        nome,
+        email,
+        cpf,
+        telefone,
+        senha,
+        uf,
+        cidade,
+        bairro,
+        logradouro,
+        cep: cepInput,
+        numero,
+        complemento,
+      });
+
+      console.log("Cadastro realizado com sucesso:", response.data);
+      setShowSuccessModal(true);
+      setTimeout(() => {
+        setShowSuccessModal(false);
+        navigation.navigate("Login");
+      }, 2000);
+
+      // Limpar os campos apenas em caso de sucesso
+      setNome("");
+      setEmail("");
+      setCpf("");
+      setTelefone("");
+      setSenha("");
+      setComplemento("");
+      setUf("");
+      setCepInput("");
+      setBairro("");
+      setLogradouro("");
+      setCidade("");
+      setNumero("");
+      setTermoAceito(false);
+    } catch (error) {
+      console.log("Erro ao realizar cadastro:", error);
+      let errors = ["Erro desconhecido"];
+      if (error.response) {
+        console.log("Resposta do servidor:", error.response.data);
+        errors = error.response.data.errors || [
+            error.response.data.message,
+          ] || ["Erro no servidor"];
+      } else if (error.request) {
+        console.log("Erro de requisição:", error.request);
+        errors = ["Erro de rede ou servidor indisponível"];
+      }
+      setErrorMessages(errors);
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -132,7 +173,6 @@ const handleRegister = async () => {
           <TextInput
             style={styles.input}
             placeholder="859999999"
-            
             keyboardType="phone-pad"
             onChangeText={setTelefone}
             value={telefone}
@@ -236,6 +276,7 @@ const handleRegister = async () => {
         </View>
       </ScrollView>
 
+      {/* Modal de Erros */}
       <Modal visible={errorMessages.length > 0} transparent={true}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
@@ -255,6 +296,7 @@ const handleRegister = async () => {
         </View>
       </Modal>
 
+      {/* Modal de Sucesso */}
       <Modal visible={showSuccessModal} transparent={true}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
@@ -268,6 +310,7 @@ const handleRegister = async () => {
         </View>
       </Modal>
 
+      {/* Modal de Termos */}
       <Modal visible={showTermsModal} transparent={true}>
         <View style={styles.modalOverlay}>
           <ScrollView style={styles.modalContainer}>
@@ -318,6 +361,7 @@ const handleRegister = async () => {
   );
 };
 
+// Estilos
 const styles = StyleSheet.create({
   container: {
     flex: 1,
