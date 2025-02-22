@@ -17,7 +17,6 @@ const Login = () => {
 
   const navigation = useNavigation();
 
-  
   const handleSubmit = () => {
     setIsLoading(true);
     setErrorMessage("");
@@ -34,10 +33,6 @@ const Login = () => {
       setIsLoading(false);
     }, 1500);
   };
-
-  const handleNavigate = () => {
-    navigation.navigate("Cadastro")
-  }
 
   return (
     <View style={styles.container}>
@@ -77,9 +72,7 @@ const Login = () => {
         <Text style={styles.link}>Esqueceu a senha?</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity
-        onPress={handleNavigate}
-      >
+      <TouchableOpacity onPress={() => navigation.navigate("Cadastrar")}>
         <Text style={styles.link}>Não tem uma conta? Registre-se</Text>
       </TouchableOpacity>
     </View>
@@ -128,5 +121,6 @@ const styles = StyleSheet.create({
   link: {
     color: "#fff",
     marginTop: 10,
+    textDecorationLine: "underline",
   },
 });
