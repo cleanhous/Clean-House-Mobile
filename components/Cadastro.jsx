@@ -34,7 +34,6 @@ const Cadastro = () => {
 
   const navigation = useNavigation();
 
-  // Função para formatar o CPF
   const formatarCpf = (value) => {
     value = value.replace(/\D/g, "");
     value = value.replace(/(\d{3})(\d)/, "$1.$2");
@@ -48,7 +47,6 @@ const Cadastro = () => {
     setCpf(cpfFormatado);
   };
 
-  // Função para buscar o CEP usando a API ViaCEP
   const buscarCep = async () => {
     const cepValue = cepInput.replace(/\D/g, "");
     if (cepValue.length !== 8) {
@@ -75,7 +73,6 @@ const Cadastro = () => {
     }
   };
 
-  // Função para enviar o cadastro ao backend
   const handleRegister = async () => {
     if (!termoAceito) {
       Alert.alert(
@@ -108,7 +105,6 @@ const Cadastro = () => {
         navigation.navigate("Login");
       }, 2000);
 
-      // Limpar os campos apenas em caso de sucesso
       setNome("");
       setEmail("");
       setCpf("");
@@ -276,7 +272,6 @@ const Cadastro = () => {
         </View>
       </ScrollView>
 
-      {/* Modal de Erros */}
       <Modal visible={errorMessages.length > 0} transparent={true}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
@@ -296,7 +291,6 @@ const Cadastro = () => {
         </View>
       </Modal>
 
-      {/* Modal de Sucesso */}
       <Modal visible={showSuccessModal} transparent={true}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
@@ -310,7 +304,6 @@ const Cadastro = () => {
         </View>
       </Modal>
 
-      {/* Modal de Termos */}
       <Modal visible={showTermsModal} transparent={true}>
         <View style={styles.modalOverlay}>
           <ScrollView style={styles.modalContainer}>
@@ -361,7 +354,6 @@ const Cadastro = () => {
   );
 };
 
-// Estilos
 const styles = StyleSheet.create({
   container: {
     flex: 1,

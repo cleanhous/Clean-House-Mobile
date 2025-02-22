@@ -21,13 +21,10 @@ const Login = () => {
     setIsLoading(true);
     setErrorMessage("");
 
-    // Simulação de autenticação (setTimeout)
     setTimeout(() => {
       if (email === "teste@example.com" && senha === "123456") {
-        // Navega para Home caso o login seja bem-sucedido
         navigation.navigate("Home");
       } else {
-        // Exibe mensagem de erro caso falhe
         setErrorMessage("Usuário ou senha incorretos. Tente novamente.");
       }
       setIsLoading(false);

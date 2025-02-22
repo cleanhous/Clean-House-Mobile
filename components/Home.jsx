@@ -1,5 +1,5 @@
 import React from "react";
-import { ScrollView, View, Text, StyleSheet, Dimensions } from "react-native";
+import { ScrollView, View, Text, StyleSheet, Dimensions, TouchableOpacity } from "react-native";
 
 import {
   PlugZap,
@@ -13,18 +13,20 @@ import {
   BrainCircuit,
   CookingPot,
 } from "lucide-react-native";
+import { useNavigation } from "@react-navigation/native";
 
 const Home = () => {
+
+  const navigation = useNavigation();
+
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      
       <View style={styles.headerSection}>
         <Text style={styles.placeholderText}>
           Aqui ficava o header (NavBar, logo etc.)
         </Text>
       </View>
 
-     
       <View style={styles.servicesPreview}>
         <Text style={styles.servicesTitle}>
           Aqui ficava a prévia de serviços
@@ -45,7 +47,6 @@ const Home = () => {
         </View>
       </View>
 
-      
       <View style={styles.promotionSection}>
         <Handshake size={80} color="#0284c7" />
         <Text style={styles.promoTitle}>Aqui ficava a seção promocional</Text>
@@ -54,7 +55,6 @@ const Home = () => {
         </Text>
       </View>
 
-    
       <View style={styles.allServicesSection}>
         <Text style={styles.allServicesTitle}>
           Aqui ficava a lista completa de serviços
@@ -87,12 +87,13 @@ const Home = () => {
         </View>
       </View>
 
-     
       <View>
-        <Text style={styles.placeholderText}>Aqui fica o FAQ</Text>
+        <Text style={styles.loginText}>Alguma dúvida?</Text>
+        <TouchableOpacity onPress={() => navigation.navigate("Faq")}>
+          <Text style={styles.link}>FAQ</Text>
+        </TouchableOpacity>
       </View>
 
-     
       <View>
         <Text style={styles.placeholderText}>Aqui fica o Footer</Text>
       </View>
@@ -204,4 +205,15 @@ const styles = StyleSheet.create({
     marginBottom: 4,
     textAlign: "center",
   },
+  loginText: {
+    color: "#fff",
+    textAlign: "center",
+    fontSize: 16,
+  },
+  link: {
+    color: "#fff",
+    textDecorationLine: "underline",
+    textAlign: "center",
+    fontSize: 16,
+  }
 });
