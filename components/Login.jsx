@@ -8,6 +8,8 @@ import {
   StyleSheet,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
+import AsyncStorage from "@react-native-async-storage/async-storage"; 
+import api from "../services/api"; 
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -17,18 +19,26 @@ const Login = () => {
 
   const navigation = useNavigation();
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     setIsLoading(true);
     setErrorMessage("");
 
-    setTimeout(() => {
-      if (email === "teste@example.com" && senha === "123456") {
-        navigation.navigate("Home");
+    try {
+      const response = await api.post("/login", { email, senha });
+      const { acessToken } = response.data;
+
+      await AsyncStorage.setItem("acessToken", acessToken);
+
+      navigation.navigate("Home");
+    } catch (error) {
+      if (error.response) {
+        setErrorMessage(error.response.data.message || "Erro ao fazer login");
       } else {
-        setErrorMessage("Usuário ou senha incorretos. Tente novamente.");
+        setErrorMessage("Erro de conexão com o servidor");
       }
+    } finally {
       setIsLoading(false);
-    }, 1500);
+    }
   };
 
   return (
