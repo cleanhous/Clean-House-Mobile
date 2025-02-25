@@ -13,6 +13,7 @@ import {
 import { useNavigation } from "@react-navigation/native";
 import cep from "../services/cep";
 import api from "../services/api";
+import Logo from "../assets/logo.svg"
 
 const Cadastro = () => {
   const [nome, setNome] = useState("");
@@ -137,6 +138,7 @@ const Cadastro = () => {
   return (
     <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContainer}>
+      <Logo width={100} height={100} style={styles.logo} />
         <Text style={styles.title}>Faça seu Cadastro</Text>
         <View style={styles.formContainer}>
           <Text style={styles.label}>Nome</Text>
@@ -147,7 +149,7 @@ const Cadastro = () => {
             value={nome}
           />
 
-          <Text style={styles.label}>Email</Text>
+          <Text style={styles.label}>E-mail</Text>
           <TextInput
             style={styles.input}
             placeholder="example@gmail.com"
@@ -168,7 +170,7 @@ const Cadastro = () => {
           <Text style={styles.label}>Telefone</Text>
           <TextInput
             style={styles.input}
-            placeholder="859999999"
+            placeholder="85999999999"
             keyboardType="phone-pad"
             onChangeText={setTelefone}
             value={telefone}
@@ -264,7 +266,7 @@ const Cadastro = () => {
             disabled={!termoAceito}
             style={[
               styles.button,
-              { backgroundColor: termoAceito ? "#075985" : "#A0AEC0" },
+              { backgroundColor: termoAceito ? "#0369A1" : "#A0AEC0" },
             ]}
           >
             <Text style={styles.buttonText}>Cadastrar</Text>
@@ -357,7 +359,11 @@ const Cadastro = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#075985",
+    backgroundColor: "#fff",
+  },
+  logo: {
+    marginTop: 70,
+    marginBottom: 10,
   },
   scrollContainer: {
     flexGrow: 1,
@@ -366,28 +372,30 @@ const styles = StyleSheet.create({
     paddingVertical: 20,
   },
   title: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: "bold",
-    color: "#FFFFFF",
+    color: "#0369A1",
     marginBottom: 20,
+    marginTop: 10
   },
   formContainer: {
-    width: "90%",
+    width: "95%",
     backgroundColor: "white",
     padding: 20,
     borderRadius: 10,
+    marginBottom: 40,
   },
   label: {
     fontSize: 18,
-    color: "#075985",
+    color: "#0369A1",
     marginBottom: 5,
   },
   input: {
     width: "100%",
     padding: 10,
     borderRadius: 10,
-    borderWidth: 2,
-    borderColor: "#075985",
+    borderWidth: 1,
+    borderColor: "#0369A1",
     marginBottom: 10,
   },
   checkboxContainer: {
@@ -396,8 +404,11 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   checkboxLabel: {
-    color: "#075985",
+    color: "#0369A1",
+    marginTop: 10,
     marginLeft: 10,
+    flexWrap: "wrap",  
+    width: "80%",  
   },
   loginContainer: {
     flexDirection: "row",
@@ -405,10 +416,10 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   loginText: {
-    color: "#075985",
+    color: "#0369A1",
   },
   link: {
-    color: "#075985",
+    color: "#0369A1",
     textDecorationLine: "underline",
   },
   button: {
@@ -440,7 +451,7 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 24,
     fontWeight: "bold",
-    color: "#075985",
+    color: "#0369A1",
     marginBottom: 10,
   },
   modalTitleError: {
@@ -455,11 +466,12 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   modalButton: {
-    backgroundColor: "#075985",
+    backgroundColor: "#0369A1",
     padding: 10,
     borderRadius: 5,
     alignItems: "center",
     marginTop: 10,
+    marginBottom: 20
   },
   modalButtonText: {
     color: "white",
