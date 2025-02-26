@@ -29,8 +29,8 @@ const Login = () => {
       const { acessToken } = response.data;
 
       await AsyncStorage.setItem("acessToken", acessToken);
-
       navigation.navigate("Home");
+      
     } catch (error) {
       if (error.response) {
         setErrorMessage(error.response.data.message || "Erro ao fazer login");
@@ -40,6 +40,7 @@ const Login = () => {
     } finally {
       setIsLoading(false);
     }
+    
   };
 
   return (
