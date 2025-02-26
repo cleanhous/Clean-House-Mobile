@@ -15,6 +15,7 @@ const FAQ = () => {
   const handleNavigate = () => {
     navigation.navigate("Home");
   };
+  
 
   return (
     <View style={styles.container}>
@@ -81,9 +82,12 @@ const FAQ = () => {
           </Text>
         </View>
 
-        <TouchableOpacity style={styles.button} onPress={handleNavigate}>
-          <Text style={styles.buttonText}>Voltar</Text>
-        </TouchableOpacity>
+        <View style={styles.contactView}>
+          <Text style={styles.textContact}>Precisa de mais ajuda?</Text>
+          <TouchableOpacity style={styles.buttonContact} >
+            <Text style={styles.buttonText}>Entre em contato</Text>
+          </TouchableOpacity>
+        </View>
       </ScrollView>
     </View>
   );
@@ -94,7 +98,6 @@ export default FAQ;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#0369a1",
   },
   scrollContainer: {
     paddingVertical: 20,
@@ -142,6 +145,27 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 10,
     alignItems: "center",
+  },
+  textContact:{
+    color: '#0369A1',
+    fontWeight: 'bold',
+    fontSize: 16
+  },
+  contactView: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 15,
+  },
+  buttonContact: {
+    width: "50%",
+    backgroundColor: "#0369A1",
+    padding: 12,
+    borderRadius: 10,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 15,
   },
   buttonText: {
     color: "#fff",

@@ -1,5 +1,13 @@
 import React from "react";
-import { ScrollView, View, Text, StyleSheet, Dimensions, TouchableOpacity } from "react-native";
+import {
+  ScrollView,
+  View,
+  Text,
+  StyleSheet,
+  Dimensions,
+  TouchableOpacity,
+  Image,
+} from "react-native";
 
 import {
   PlugZap,
@@ -14,84 +22,80 @@ import {
   CookingPot,
 } from "lucide-react-native";
 import { useNavigation } from "@react-navigation/native";
+import FAQ from "./Faq";
 
 const Home = () => {
-
   const navigation = useNavigation();
-
+  const handleClick = () => {
+    navigation.navigate("Login");
+  };
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <View style={styles.headerSection}>
-        <Text style={styles.placeholderText}>
-          Aqui ficava o header (NavBar, logo etc.)
-        </Text>
-      </View>
 
       <View style={styles.servicesPreview}>
-        <Text style={styles.servicesTitle}>
-          Aqui ficava a prévia de serviços
+        <Image source={require("../assets/logo1.png")} style={styles.imagem} />
+        <Text style={styles.serviceSubtitle}>
+          Praticidade, comodidade e segurança em um só aplicativo
         </Text>
-        <View style={styles.servicesRow}>
-          <View style={styles.serviceBox}>
-            <Text style={styles.serviceName}>Serviço 1</Text>
-            <PlugZap size={32} color="#0284c7" />
-          </View>
-          <View style={styles.serviceBox}>
-            <Text style={styles.serviceName}>Serviço 2</Text>
-            <Droplet size={32} color="#0284c7" />
-          </View>
-          <View style={styles.serviceBox}>
-            <Text style={styles.serviceName}>Serviço 3</Text>
-            <User size={32} color="#0284c7" />
-          </View>
-        </View>
       </View>
 
       <View style={styles.promotionSection}>
         <Handshake size={80} color="#0284c7" />
-        <Text style={styles.promoTitle}>Aqui ficava a seção promocional</Text>
+        <Text style={styles.promoTitle}>Precisando de praticidade?</Text>
         <Text style={styles.promoText}>
-          Texto explicando a promoção ou chamada para ação.
+          Estamos aqui para ajudar você a encontrar os melhores profissionais
+          com facilidade e confiança. Conte com a gente!
         </Text>
       </View>
 
       <View style={styles.allServicesSection}>
-        <Text style={styles.allServicesTitle}>
-          Aqui ficava a lista completa de serviços
-        </Text>
+        <Text style={styles.allServicesTitle}>Todos os nossos serviços</Text>
         <View style={styles.servicesGrid}>
-          <View style={styles.gridItem}>
-            <Text style={styles.gridItemText}>Serviço A</Text>
-            <Settings size={24} color="#0284c7" />
-          </View>
-          <View style={styles.gridItem}>
-            <Text style={styles.gridItemText}>Serviço B</Text>
-            <Paintbrush size={24} color="#0284c7" />
-          </View>
-          <View style={styles.gridItem}>
-            <Text style={styles.gridItemText}>Serviço C</Text>
-            <KeyRound size={24} color="#0284c7" />
-          </View>
-          <View style={styles.gridItem}>
-            <Text style={styles.gridItemText}>Serviço D</Text>
-            <LayoutDashboard size={24} color="#0284c7" />
-          </View>
-          <View style={styles.gridItem}>
-            <Text style={styles.gridItemText}>Serviço E</Text>
-            <BrainCircuit size={24} color="#0284c7" />
-          </View>
-          <View style={styles.gridItem}>
-            <Text style={styles.gridItemText}>Serviço F</Text>
-            <CookingPot size={24} color="#0284c7" />
-          </View>
+          <TouchableOpacity
+            style={styles.gridItem}
+            onPress={() => navigation.navigate("Login")}
+          >
+            <Text style={styles.gridItemText}>Assistência técnica</Text>
+            <Settings size={20} color="#0284c7" />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.gridItem}>
+            <Text style={styles.gridItemText}>Pintor</Text>
+            <Paintbrush size={20} color="#0284c7" />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.gridItem}>
+            <Text style={styles.gridItemText}>Chaveiro</Text>
+            <KeyRound size={20} color="#0284c7" />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.gridItem}>
+            <Text style={styles.gridItemText}>Empreiteiro</Text>
+            <LayoutDashboard size={20} color="#0284c7" />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.gridItem}>
+            <Text style={styles.gridItemText}>Arquiteto</Text>
+            <BrainCircuit size={20} color="#0284c7" />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.gridItem}>
+            <Text style={styles.gridItemText}>Cozinheiro</Text>
+            <CookingPot size={20} color="#0284c7" />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.gridItem}>
+            <Text style={styles.gridItemText}>Diarista</Text>
+            <User size={20} color="#0284c7" />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.gridItem}>
+            <Text style={styles.gridItemText}>Eletricista</Text>
+            <PlugZap size={20} color="#0284c7" />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.gridItem}>
+            <Text style={styles.gridItemText}>Encanador</Text>
+            <Droplet size={20} color="#0284c7" />
+          </TouchableOpacity>
         </View>
       </View>
 
       <View>
         <Text style={styles.loginText}>Alguma dúvida?</Text>
-        <TouchableOpacity onPress={() => navigation.navigate("Faq")}>
-          <Text style={styles.link}>FAQ</Text>
-        </TouchableOpacity>
+        <FAQ />
       </View>
 
       <View>
@@ -108,6 +112,13 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     backgroundColor: "#0284c7",
     paddingBottom: 20,
+    minHeight: "100%",
+  },
+  imagem: {
+    width: 200,
+    height: 200,
+    alignSelf: "center",
+    resizeMode: "contain",
   },
   placeholderText: {
     color: "#fff",
@@ -121,17 +132,19 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   servicesPreview: {
+    marginVertical: 30,
     backgroundColor: "#fff",
     paddingVertical: 16,
     marginHorizontal: 16,
     borderRadius: 8,
     marginBottom: 20,
   },
-  servicesTitle: {
+  serviceSubtitle: {
     textAlign: "center",
+    color: "#333",
     fontSize: 22,
-    color: "#0284c7",
-    fontWeight: "600",
+    color: "black",
+    fontWeight: "bold",
     marginBottom: 12,
   },
   servicesRow: {
@@ -167,10 +180,12 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   promoText: {
-    fontSize: 16,
     textAlign: "center",
     marginVertical: 12,
     color: "#333",
+    fontSize: 20,
+    color: "black",
+    marginBottom: 12,
   },
   allServicesSection: {
     backgroundColor: "#fff",
@@ -190,14 +205,18 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "space-around",
+    paddingHorizontal: 10,
   },
   gridItem: {
     backgroundColor: "#e5e7eb",
     width: Dimensions.get("window").width / 3 - 20,
     padding: 12,
     borderRadius: 8,
+    display: "flex",
+    justifyContent: "center",
     alignItems: "center",
     marginVertical: 8,
+    padding: 10,
   },
   gridItemText: {
     color: "#0284c7",
@@ -208,12 +227,14 @@ const styles = StyleSheet.create({
   loginText: {
     color: "#fff",
     textAlign: "center",
-    fontSize: 16,
+    fontSize: 20,
+    marginBottom: 10,
+    fontWeight: "bold",
   },
   link: {
     color: "#fff",
     textDecorationLine: "underline",
     textAlign: "center",
     fontSize: 16,
-  }
+  },
 });
