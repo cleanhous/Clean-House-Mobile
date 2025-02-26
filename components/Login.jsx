@@ -8,6 +8,9 @@ import {
   StyleSheet,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import api from "../services/api";
+import Logo from "../assets/logo.svg";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -17,25 +20,32 @@ const Login = () => {
 
   const navigation = useNavigation();
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     setIsLoading(true);
     setErrorMessage("");
 
-    // Simulação de autenticação (setTimeout)
-    setTimeout(() => {
-      if (email === "teste@example.com" && senha === "123456") {
-        // Navega para Home caso o login seja bem-sucedido
-        navigation.navigate("Home");
-      } else {
-        // Exibe mensagem de erro caso falhe
-        setErrorMessage("Usuário ou senha incorretos. Tente novamente.");
-      }
-      setIsLoading(false);
-    }, 1500);
+    // try {
+    //   const response = await api.post("/login", { email, senha });
+    //   const { acessToken } = response.data;
+
+    //   await AsyncStorage.setItem("acessToken", acessToken);
+
+      
+    // } catch (error) {
+    //   if (error.response) {
+    //     setErrorMessage(error.response.data.message || "Erro ao fazer login");
+    //   } else {
+    //     setErrorMessage("Erro de conexão com o servidor");
+    //   }
+    // } finally {
+    //   setIsLoading(false);
+    // }
+    navigation.navigate("Home");
   };
 
   return (
     <View style={styles.container}>
+      <Logo width={100} height={100} style={styles.logo} />
       <Text style={styles.title}>Faça seu Login</Text>
 
       <TextInput
@@ -62,9 +72,9 @@ const Login = () => {
         disabled={isLoading}
       >
         {isLoading ? (
-          <ActivityIndicator size="small" color="#fff" />
+          <ActivityIndicator size="small" color="#0369A1" />
         ) : (
-          <Text style={styles.buttonText}>Login</Text>
+          <Text style={styles.buttonText}>Entrar</Text>
         )}
       </TouchableOpacity>
 
@@ -72,7 +82,7 @@ const Login = () => {
         <Text style={styles.link}>Esqueceu a senha?</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity>
+      <TouchableOpacity onPress={() => navigation.navigate("Cadastrar")}>
         <Text style={styles.link}>Não tem uma conta? Registre-se</Text>
       </TouchableOpacity>
     </View>
@@ -86,28 +96,36 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#38BDF8",
+    backgroundColor: "#fff",
     padding: 20,
+  },
+  logo: {
+    marginBottom: 20,
   },
   title: {
     fontSize: 24,
     fontWeight: "bold",
-    color: "#fff",
+    color: "#0369A1",
     marginBottom: 20,
   },
   input: {
-    width: "100%",
+    width: "95%",
     padding: 10,
     backgroundColor: "#fff",
+    color: "#0369A1",
     borderRadius: 10,
     marginBottom: 10,
-  },
+    borderWidth: 1,
+    borderColor: "#0369A1", 
+  },  
   button: {
-    width: "100%",
+    width: "95%",
     backgroundColor: "#0369A1",
     padding: 12,
     borderRadius: 10,
     alignItems: "center",
+    borderWidth: 2,
+    borderColor: "#0369A1",
   },
   buttonText: {
     color: "#fff",
@@ -119,7 +137,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   link: {
-    color: "#fff",
+    color: "#0369A1",
     marginTop: 10,
     textDecorationLine: "underline",
   },
