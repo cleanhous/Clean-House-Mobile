@@ -24,23 +24,22 @@ const Login = () => {
     setIsLoading(true);
     setErrorMessage("");
 
-    // try {
-    //   const response = await api.post("/login", { email, senha });
-    //   const { acessToken } = response.data;
+    try {
+      const response = await api.post("/login", { email, senha });
+      const { acessToken } = response.data;
 
-    //   await AsyncStorage.setItem("acessToken", acessToken);
+      await AsyncStorage.setItem("acessToken", acessToken);
 
-      
-    // } catch (error) {
-    //   if (error.response) {
-    //     setErrorMessage(error.response.data.message || "Erro ao fazer login");
-    //   } else {
-    //     setErrorMessage("Erro de conexão com o servidor");
-    //   }
-    // } finally {
-    //   setIsLoading(false);
-    // }
-    navigation.navigate("Home");
+      navigation.navigate("Home");
+    } catch (error) {
+      if (error.response) {
+        setErrorMessage(error.response.data.message || "Erro ao fazer login");
+      } else {
+        setErrorMessage("Erro de conexão com o servidor");
+      }
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -116,8 +115,8 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     marginBottom: 10,
     borderWidth: 1,
-    borderColor: "#0369A1", 
-  },  
+    borderColor: "#0369A1",
+  },
   button: {
     width: "95%",
     backgroundColor: "#0369A1",
