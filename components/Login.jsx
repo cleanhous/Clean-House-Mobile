@@ -30,7 +30,7 @@ const Login = () => {
 
       await AsyncStorage.setItem("acessToken", acessToken);
 
-      navigation.navigate("Home");
+      navigation.replace("Navbar"); 
     } catch (error) {
       if (error.response) {
         setErrorMessage(error.response.data.message || "Erro ao fazer login");
@@ -71,7 +71,7 @@ const Login = () => {
         disabled={isLoading}
       >
         {isLoading ? (
-          <ActivityIndicator size="small" color="#0369A1" />
+          <ActivityIndicator size="small" color="white" />
         ) : (
           <Text style={styles.buttonText}>Entrar</Text>
         )}
