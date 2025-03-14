@@ -52,32 +52,32 @@ const Home = () => {
         <View style={styles.servicesGrid}>
           <TouchableOpacity
             style={styles.gridItem}
-            onPress={() => navigation.navigate("Login")}
+            onPress={() => navigation.navigate("Assistencia")}
           >
             <Text style={styles.gridItemText}>Assistência técnica</Text>
             <Settings size={20} color="#0284c7" />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.gridItem}>
+          <TouchableOpacity onPress={() => navigation.navigate("Pintor")} style={styles.gridItem}>
             <Text style={styles.gridItemText}>Pintor</Text>
             <Paintbrush size={20} color="#0284c7" />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.gridItem}>
+          <TouchableOpacity onPress={() => navigation.navigate("Chaveiro")} style={styles.gridItem}>
             <Text style={styles.gridItemText}>Chaveiro</Text>
             <KeyRound size={20} color="#0284c7" />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.gridItem}>
+          <TouchableOpacity onPress={() => navigation.navigate("Empreiteiro")} style={styles.gridItem}>
             <Text style={styles.gridItemText}>Empreiteiro</Text>
             <LayoutDashboard size={20} color="#0284c7" />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.gridItem}>
+          <TouchableOpacity onPress={() => navigation.navigate("Arquiteto")} style={styles.gridItem}>
             <Text style={styles.gridItemText}>Arquiteto</Text>
             <BrainCircuit size={20} color="#0284c7" />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.gridItem}>
+          <TouchableOpacity onPress={() => navigation.navigate("Cozinheiro")} style={styles.gridItem}>
             <Text style={styles.gridItemText}>Cozinheiro</Text>
             <CookingPot size={20} color="#0284c7" />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.gridItem}>
+          <TouchableOpacity onPress={() => navigation.navigate('Diarista')} style={styles.gridItem}>
             <Text style={styles.gridItemText}>Diarista</Text>
             <User size={20} color="#0284c7" />
           </TouchableOpacity>
@@ -85,7 +85,7 @@ const Home = () => {
             <Text style={styles.gridItemText}>Eletricista</Text>
             <PlugZap size={20} color="#0284c7" />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.gridItem}>
+          <TouchableOpacity onPress={() => navigation.navigate("Encanador")} style={styles.gridItem}>
             <Text style={styles.gridItemText}>Encanador</Text>
             <Droplet size={20} color="#0284c7" />
           </TouchableOpacity>
