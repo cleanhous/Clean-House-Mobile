@@ -26,22 +26,22 @@ const Login = () => {
     navigation.replace("Navbar"); 
 
 
-    // try {
-    //   const response = await api.post("/login", { email, senha });
-    //   const { acessToken } = response.data;
+    try {
+      const response = await api.post("/login", { email, senha });
+      const { acessToken } = response.data;
 
-    //   await AsyncStorage.setItem("acessToken", acessToken);
+      await AsyncStorage.setItem("acessToken", acessToken);
 
-    //   navigation.replace("Navbar"); 
-    // } catch (error) {
-    //   if (error.response) {
-    //     setErrorMessage(error.response.data.message || "Erro ao fazer login");
-    //   } else {
-    //     setErrorMessage("Erro de conexão com o servidor");
-    //   }
-    // } finally {
-    //   setIsLoading(false);
-    // }
+      navigation.replace("Navbar"); 
+    } catch (error) {
+      if (error.response) {
+        setErrorMessage(error.response.data.message || "Erro ao fazer login");
+      } else {
+        setErrorMessage("Erro de conexão com o servidor");
+      }
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
