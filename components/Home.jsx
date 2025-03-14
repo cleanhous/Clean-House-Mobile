@@ -31,7 +31,6 @@ const Home = () => {
   };
   return (
     <ScrollView contentContainerStyle={styles.container}>
-
       <View style={styles.servicesPreview}>
         <Image source={require("../assets/logo1.png")} style={styles.imagem} />
         <Text style={styles.serviceSubtitle}>
@@ -82,7 +81,7 @@ const Home = () => {
             <Text style={styles.gridItemText}>Diarista</Text>
             <User size={20} color="#0284c7" />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.gridItem}>
+          <TouchableOpacity onPress={() => navigation.navigate("Eletricista")} style={styles.gridItem}>
             <Text style={styles.gridItemText}>Eletricista</Text>
             <PlugZap size={20} color="#0284c7" />
           </TouchableOpacity>
@@ -209,7 +208,8 @@ const styles = StyleSheet.create({
   },
   gridItem: {
     backgroundColor: "#e5e7eb",
-    width: Dimensions.get("window").width / 3 - 20,
+    width: "30%",
+    height: 100,
     padding: 12,
     borderRadius: 8,
     display: "flex",

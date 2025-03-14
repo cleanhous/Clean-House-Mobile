@@ -6,6 +6,7 @@ import Login from "./components/Login";
 import Cadastro from "./components/Cadastro";
 import Faq from "./components/Faq";
 import Navbar from "./components/Navbar";
+import Eletricista from "./components/Eletricista";
 
 const Stack = createStackNavigator();
 
@@ -32,6 +33,11 @@ export default function App() {
           name="Navbar"
           component={Navbar}
           options={{ headerShown: false }} 
+        />
+        <Stack.Screen
+          name="Eletricista"
+          component={Eletricista}
+          options={{ headerShown: false}} 
         />
       </Stack.Navigator>
     </NavigationContainer>
