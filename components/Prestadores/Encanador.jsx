@@ -11,7 +11,6 @@ import {
   Linking,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
-// import DateTimePicker from "@react-native-community/datetimepicker";
 import axios from "axios";
 
 
