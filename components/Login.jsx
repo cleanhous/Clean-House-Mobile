@@ -12,7 +12,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import api from "../services/api";
 import Logo from "../assets/logo.svg";
 import Icon from "react-native-vector-icons/FontAwesome";
-
+// está bom mas poderia estar melhor...
 const Login = () => {
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
