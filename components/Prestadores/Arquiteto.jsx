@@ -11,10 +11,8 @@ import {
   Linking,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
-// import DateTimePicker from "@react-native-community/datetimepicker";
 import axios from "axios";
 
-// Componente NavBarHome (simulado, deve ser ajustado conforme sua implementação)
 const NavBarHome = () => (
   <View style={styles.navBar}>
     <Text style={styles.navText}>Home</Text>
@@ -241,7 +239,7 @@ const Arquiteto = () => {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("token")}`, // Substituir por AsyncStorage em React Native
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
           body: JSON.stringify({
             prestadorId: selectedArquiteto.id,
@@ -303,7 +301,6 @@ const Arquiteto = () => {
             <View key={arquiteto.id} style={styles.card}>
               <View style={styles.cardHeader}>
                 <Text style={styles.cardTitle}>{arquiteto.nome}</Text>
-                {/* Para imagens, use Image e forneça um URI válido */}
               </View>
               <Text style={styles.cardText}>{arquiteto.titulo}</Text>
               <Text style={styles.cardText}>{arquiteto.descricao}</Text>
@@ -422,7 +419,6 @@ const Arquiteto = () => {
         </View>
       </Modal>
 
-      {/* Modal de Confirmação */}
       <Modal visible={showConfirmationPopup} transparent animationType="slide">
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
