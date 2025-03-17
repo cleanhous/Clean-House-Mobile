@@ -11,10 +11,12 @@ import {
   Linking,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
-import axios from "axios";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import api from "../../services/api"; 
+//import DateTimePicker from "@react-native-community/datetimepicker"; // sem função nessa sprint
 
 const NavBarHome = () => (
-  <View style={styles.navBar}>
+  <View style={[styles.navBar, { paddingTop: 40 }]}>
     <Text style={styles.navText}>Home</Text>
   </View>
 );
@@ -107,7 +109,6 @@ const Filtro = ({
 };
 
 const Arquiteto = () => {
-
   const [filtroNota, setFiltroNota] = useState("");
   const [precoDe, setPrecoDe] = useState("");
   const [precoAte, setPrecoAte] = useState("");
@@ -131,12 +132,9 @@ const Arquiteto = () => {
 
   const fetchArquitetos = async () => {
     try {
-      const response = await fetch(
-        "https:hopeful-youth-production-8fe2.up.railway.app/arquiteto"
-      );
-      const data = await response.json();
-      setArquitetos(data);
-      setFilteredArquitetos(data);
+      const response = await api.get("/arquiteto");
+      setArquitetos(response.data);
+      setFilteredArquitetos(response.data);
     } catch (error) {
       console.error("Erro ao buscar arquitetos:", error);
     }
@@ -148,10 +146,8 @@ const Arquiteto = () => {
 
   useEffect(() => {
     if (selectedArquiteto) {
-      axios
-        .get(
-          `https:hopeful-youth-production-8fe2.up.railway.app/prestadores/${selectedArquiteto.id}/schedule`
-        )
+      api
+        .get(`/prestadores/${selectedArquiteto.id}/schedule`)
         .then((response) => {
           setPrestadorSchedule(response.data);
         })
@@ -174,22 +170,19 @@ const Arquiteto = () => {
 
   const handleFiltrar = async () => {
     try {
-      let data = [];
+      let response;
       if (dataInicial && dataFinal) {
-        const queryParams = new URLSearchParams({
-          dataInicio: dataInicial.toISOString(),
-          dataFim: dataFinal.toISOString(),
+        response = await api.get("/prestadores-disponiveis/arquiteto", {
+          params: {
+            dataInicio: dataInicial.toISOString(),
+            dataFim: dataFinal.toISOString(),
+          },
         });
-        const response = await fetch(
-          `https:hopeful-youth-production-8fe2.up.railway.app/prestadores-disponiveis/arquiteto?${queryParams}`
-        );
-        data = await response.json();
       } else {
-        const response = await fetch(
-          "https:hopeful-youth-production-8fe2.up.railway.app/arquiteto"
-        );
-        data = await response.json();
+        response = await api.get("/arquiteto");
       }
+
+      const data = response.data;
 
       const filtered = data.filter((arquiteto) => {
         let matches = true;
@@ -233,38 +226,36 @@ const Arquiteto = () => {
         .slice(0, 19)
         .replace("T", " ");
 
-      const response = await fetch(
-        "https://backend-production-ce19.up.railway.app/contrato",
+      const token = await AsyncStorage.getItem("acessToken"); 
+
+      const response = await api.post(
+        "/contrato",
         {
-          method: "POST",
+          prestadorId: selectedArquiteto.id,
+          dataInicio: dataInicioFormatted,
+          dataFim: dataFimFormatted,
+          observacao: observacoes,
+        },
+        {
           headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
+            Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify({
-            prestadorId: selectedArquiteto.id,
-            dataInicio: dataInicioFormatted,
-            dataFim: dataFimFormatted,
-            observacao: observacoes,
-          }),
         }
       );
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error("Erro ao confirmar contratação:", errorData);
-      } else {
-        console.log("Contratação confirmada com sucesso");
-        setShowPopup(false);
-        setShowConfirmationPopup(true);
-      }
+      console.log("Contratação confirmada com sucesso", response.data);
+      setShowPopup(false);
+      setShowConfirmationPopup(true);
     } catch (error) {
-      console.error("Erro ao confirmar contratação:", error);
+      console.error(
+        "Erro ao confirmar contratação:",
+        error.response ? error.response.data : error.message
+      );
     }
   };
 
   const handleRedirect = () => {
-    navigation.navigate("Pedidos"); 
+    navigation.navigate("Pedidos");
   };
 
   const formatarPreco = (preco) => {
