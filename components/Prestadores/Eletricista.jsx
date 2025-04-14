@@ -6,257 +6,126 @@ import {
   TouchableOpacity,
   StyleSheet,
   TextInput,
-  Modal,
-  Platform,
   Linking,
+  Alert,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import api from "../../services/api";
+import FiltroPrestadores from "../FiltroPrestadores";
+import CalendarioContratacao from "../CalendarioContratacao";
 
-const NavBarHome = () => (
-  <View style={[styles.navBar, { paddingTop: 40 }]}>
-    <Text style={styles.navText}>Home</Text>
-  </View>
-);
+export default function Eletricista() {
+  const [nota, definirNota] = useState("");
+  const [precoMin, definirPrecoMin] = useState("");
+  const [precoMax, definirPrecoMax] = useState("");
+  const [prestadores, definirPrestadores] = useState([]);
+  const [prestadoresFiltrados, definirPrestadoresFiltrados] = useState([]);
+  const [prestadorSelecionado, definirPrestadorSelecionado] = useState(null);
+  const [datasOcupadas, definirDatasOcupadas] = useState({});
+  const [diaSelecionado, definirDiaSelecionado] = useState(null);
+  const [mostrarHorarioInicial, definirMostrarHorarioInicial] = useState(false);
+  const [mostrarHorarioFinal, definirMostrarHorarioFinal] = useState(false);
+  const [horarioInicial, definirHorarioInicial] = useState(null);
+  const [horarioFinal, definirHorarioFinal] = useState(null);
+  const [observacoes, definirObservacoes] = useState("");
+  const [modalCalendarioVisivel, definirModalCalendarioVisivel] = useState(false);
+  const [popupConfirmacao, definirPopupConfirmacao] = useState(false);
+  const navegacao = useNavigation();
 
-const Filtro = ({
-  filtroNota,
-  setFiltroNota,
-  precoDe,
-  setPrecoDe,
-  precoAte,
-  setPrecoAte,
-  dataInicial,
-  setDataInicial,
-  dataFinal,
-  setDataFinal,
-  onFiltrar,
-}) => {
-  const [showStartDate, setShowStartDate] = useState(false);
-  const [showEndDate, setShowEndDate] = useState(false);
-
-  return (
-    <View style={styles.filterContainer}>
-      <TextInput
-        style={styles.input}
-        placeholder="Nota (0-5)"
-        value={filtroNota}
-        onChangeText={setFiltroNota}
-        keyboardType="numeric"
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Preço Mínimo"
-        value={precoDe}
-        onChangeText={setPrecoDe}
-        keyboardType="numeric"
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Preço Máximo"
-        value={precoAte}
-        onChangeText={setPrecoAte}
-        keyboardType="numeric"
-      />
-      <TouchableOpacity
-        onPress={() => setShowStartDate(true)}
-        style={styles.dateButton}
-      >
-        <Text>
-          {dataInicial
-            ? dataInicial.toLocaleDateString("pt-BR")
-            : "Data Inicial"}
-        </Text>
-      </TouchableOpacity>
-      {showStartDate && (
-        <DateTimePicker 
-          value={dataInicial || new Date()}
-          mode="date"
-          display="default"
-          onChange={(event, date) => {
-            setShowStartDate(false);
-            if (date) setDataInicial(date);
-          }}
-        />
-      )}
-      <TouchableOpacity
-        onPress={() => setShowEndDate(true)}
-        style={styles.dateButton}
-      >
-        <Text>
-          {dataFinal ? dataFinal.toLocaleDateString("pt-BR") : "Data Final"}
-        </Text>
-      </TouchableOpacity>
-      {showEndDate && (
-        <DateTimePicker 
-          value={dataFinal || new Date()}
-          mode="date"
-          display="default"
-          minimumDate={dataInicial}
-          onChange={(event, date) => {
-            setShowEndDate(false);
-            if (date) setDataFinal(date);
-          }}
-        />
-      )}
-    
-      <TouchableOpacity style={styles.filterButton} onPress={onFiltrar}>
-        <Text style={styles.buttonText}>Filtrar Eletricistas</Text>
-      </TouchableOpacity>
-    </View>
-  );
-};
-
-
-const Eletricista = () => {
-  const [filtroNota, setFiltroNota] = useState("");
-  const [precoDe, setPrecoDe] = useState("");
-  const [precoAte, setPrecoAte] = useState("");
-  const [dataInicial, setDataInicial] = useState(null);
-  const [dataFinal, setDataFinal] = useState(null);
-
-  
-  const [eletricistas, setEletricistas] = useState([]);
-  const [filteredEletricistas, setFilteredEletricistas] = useState([]);
-
-  const [showPopup, setShowPopup] = useState(false);
-  const [showConfirmationPopup, setShowConfirmationPopup] = useState(false);
-  
-  const [selectedEletricista, setSelectedEletricista] = useState(null);
-  const [selectedStartDate, setSelectedStartDate] = useState(null);
-  const [selectedEndDate, setSelectedEndDate] = useState(null);
-  const [observacoes, setObservacoes] = useState("");
-  const [prestadorSchedule, setPrestadorSchedule] = useState([]);
-  const [showStartPicker, setShowStartPicker] = useState(false);
-  const [showEndPicker, setShowEndPicker] = useState(false);
-
-  const navigation = useNavigation();
-
-  
-  const fetchEletricistas = async () => {
+  async function buscarPrestadores() {
     try {
-      const response = await api.get("/eletricista"); 
-      setEletricistas(response.data);
-      setFilteredEletricistas(response.data); 
-    } catch (error) {
-      
-      console.error("Erro ao buscar eletricistas:", error);
+      const resposta = await api.get("/eletricista");
+      definirPrestadores(resposta.data);
+      definirPrestadoresFiltrados(resposta.data);
+    } catch (erro) {
+      Alert.alert("Erro", "Não foi possível buscar prestadores.");
     }
-  };
+  }
 
   useEffect(() => {
-    fetchEletricistas(); 
+    buscarPrestadores();
   }, []);
 
-  useEffect(() => {
-    
-    if (selectedEletricista) {
-      api
-        
-        .get(`/prestadores/${selectedEletricista.id}/schedule`)
-        .then((response) => {
-          setPrestadorSchedule(response.data);
-        })
-        .catch((error) => {
-          
-          console.error("Erro ao buscar agenda do eletricista:", error);
-        });
-    }
-  
-  }, [selectedEletricista]);
-
-  
-  const isDateOccupied = (date) => {
-    return prestadorSchedule.some((item) => {
-      const start = new Date(item.data_inicio);
-      const end = new Date(item.data_fim);
-      start.setHours(0, 0, 0, 0);
-      end.setHours(23, 59, 59, 999);
-      date.setHours(0, 0, 0, 0);
-      return date >= start && date <= end;
-    });
-  };
-
-  
-  const handleFiltrar = async () => {
-    try {
-      let response;
-      if (dataInicial && dataFinal) {
-        response = await api.get("/prestadores-disponiveis/eletricista", { 
-          params: {
-            dataInicio: dataInicial.toISOString(),
-            dataFim: dataFinal.toISOString(),
-          },
-        });
-      } else {
-        response = await api.get("/eletricista"); 
+  function aoFiltrar() {
+    const filtrados = prestadores.filter((item) => {
+      let valido = true;
+      if (nota) {
+        valido = valido && parseInt(item.nota, 10) === parseInt(nota, 10);
       }
+      if (precoMin) {
+        valido = valido && item.preco >= parseFloat(precoMin);
+      }
+      if (precoMax) {
+        valido = valido && item.preco <= parseFloat(precoMax);
+      }
+      return valido;
+    });
+    definirPrestadoresFiltrados(filtrados);
+  }
 
-      const data = response.data;
-
-      
-      const filtered = data.filter((eletricista) => {
-        let matches = true;
-        if (filtroNota)
-          matches =
-           
-            matches && parseInt(eletricista.nota) === parseInt(filtroNota);
-        if (precoDe)
-         
-          matches = matches && eletricista.preco >= parseFloat(precoDe);
-        if (precoAte)
-          
-          matches = matches && eletricista.preco <= parseFloat(precoAte);
-        return matches;
-      });
-
-      setFilteredEletricistas(filtered); 
-    } catch (error) {
-      
-      console.error("Erro ao buscar eletricistas:", error);
-    }
-  };
-
-  
-  const handleCheckAvailability = (eletricista) => {
-    setSelectedEletricista(eletricista); 
-    setShowPopup(true);
-  };
-
-  
-  const closePopup = () => {
-    setShowPopup(false);
-    setSelectedEletricista(null); 
-    setSelectedStartDate(null);
-    setSelectedEndDate(null);
-    setObservacoes("");
-
-    setShowStartPicker(false);
-    setShowEndPicker(false);
-  };
-
-  
-  const handleConfirmation = async () => {
+  async function verAgenda(item) {
+    definirPrestadorSelecionado(item);
+    definirDiaSelecionado(null);
+    definirHorarioInicial(null);
+    definirHorarioFinal(null);
+    definirObservacoes("");
     try {
-      const dataInicioFormatted = selectedStartDate
-        .toISOString()
-        .slice(0, 19)
-        .replace("T", " ");
-      const dataFimFormatted = selectedEndDate
-        .toISOString()
-        .slice(0, 19)
-        .replace("T", " ");
+      const resposta = await api.get(`/prestadores/${item.id}/schedule`);
+      const agendamento = resposta.data;
+      const marcacoes = {};
+      agendamento.forEach((evento) => {
+        const inicio = new Date(evento.data_inicio);
+        const fim = new Date(evento.data_fim);
+        const atual = new Date(inicio);
+        while (atual <= fim) {
+          const ano = atual.getFullYear();
+          const mes = String(atual.getMonth() + 1).padStart(2, "0");
+          const dia = String(atual.getDate()).padStart(2, "0");
+          const chave = `${ano}-${mes}-${dia}`;
+          marcacoes[chave] = {
+            disabled: true,
+            marked: true,
+            dotColor: "red",
+            disableTouchEvent: true,
+          };
+          atual.setDate(atual.getDate() + 1);
+        }
+      });
+      definirDatasOcupadas(marcacoes);
+      definirModalCalendarioVisivel(true);
+    } catch (erro) {
+      Alert.alert("Erro", "Não foi possível carregar a agenda.");
+    }
+  }
 
+  function formatarData(dayString, dataHora) {
+    if (!dayString || !dataHora) return null;
+    const [ano, mes, dia] = dayString.split("-");
+    const hora = String(dataHora.getHours()).padStart(2, "0");
+    const minuto = String(dataHora.getMinutes()).padStart(2, "0");
+    return `${ano}-${mes}-${dia} ${hora}:${minuto}:00`;
+  }
+
+  async function confirmarContratacao() {
+    if (!diaSelecionado || !horarioInicial || !horarioFinal) {
+      Alert.alert("Dados incompletos", "Selecione dia e horários.");
+      return;
+    }
+    const dataInicio = formatarData(diaSelecionado, horarioInicial);
+    const dataFim = formatarData(diaSelecionado, horarioFinal);
+    if (!dataInicio || !dataFim) {
+      Alert.alert("Erro", "Não foi possível formatar a data/hora.");
+      return;
+    }
+    try {
       const token = await AsyncStorage.getItem("acessToken");
-
-      const response = await api.post(
+      await api.post(
         "/contrato",
         {
-          
-          prestadorId: selectedEletricista.id,
-          dataInicio: dataInicioFormatted,
-          dataFim: dataFimFormatted,
+          prestadorId: prestadorSelecionado.id,
+          dataInicio,
+          dataFim,
           observacao: observacoes,
         },
         {
@@ -265,252 +134,135 @@ const Eletricista = () => {
           },
         }
       );
-
-      console.log("Contratação confirmada com sucesso", response.data);
-      setShowPopup(false);
-      setShowConfirmationPopup(true);
-    } catch (error) {
-      console.error(
-        "Erro ao confirmar contratação:",
-        error.response ? error.response.data : error.message
-      );
+      definirModalCalendarioVisivel(false);
+      definirPopupConfirmacao(true);
+    } catch (erro) {
+      Alert.alert("Erro", "Falha ao confirmar contratação.");
     }
-  };
+  }
 
-  const handleRedirect = () => {
-    setShowConfirmationPopup(false);
-    navigation.navigate("Pedidos");
-  };
+  function redirecionar() {
+    definirPopupConfirmacao(false);
+    navegacao.navigate("Pedidos");
+  }
 
-  
-  const formatarPreco = (preco) => {
-    return `R$ ${parseFloat(preco).toFixed(2)} por diária`;
-  };
+  function formatarPreco(valor) {
+    return `R$ ${parseFloat(valor).toFixed(2)} por diária`;
+  }
 
   return (
-    <ScrollView style={styles.container}>
-      <NavBarHome />
-      <View style={styles.content}>
-        <Text style={styles.title}>Serviços de Eletricista</Text>
-        <Text style={styles.subtitle}>
-          Encontre eletricistas qualificados para suas necessidades elétricas,
-          garantindo segurança e qualidade no serviço.
+    <ScrollView style={estilos.container}>
+      <View style={[estilos.navBar, { paddingTop: 40 }]}>
+        <Text style={estilos.navText}>Home</Text>
+      </View>
+      <View style={estilos.conteudo}>
+        <Text style={estilos.titulo}>Serviços de Eletricista</Text>
+        <Text style={estilos.subtitulo}>
+          Oferecemos serviços de eletricista de alta qualidade.
         </Text>
-
-        <Filtro
-          filtroNota={filtroNota}
-          setFiltroNota={setFiltroNota}
-          precoDe={precoDe}
-          setPrecoDe={setPrecoDe}
-          precoAte={precoAte}
-          setPrecoAte={setPrecoAte}
-          dataInicial={dataInicial}
-          setDataInicial={setDataInicial}
-          dataFinal={dataFinal}
-          setDataFinal={setDataFinal}
-          onFiltrar={handleFiltrar} 
+        <FiltroPrestadores
+          nota={nota}
+          definirNota={definirNota}
+          precoMin={precoMin}
+          definirPrecoMin={definirPrecoMin}
+          precoMax={precoMax}
+          definirPrecoMax={definirPrecoMax}
+          aoFiltrar={aoFiltrar}
         />
-
-        
-        <Text style={styles.sectionTitle}>Nossos Eletricistas</Text>
-        
-        {filteredEletricistas.length > 0 ? (
-          filteredEletricistas.map((eletricista) => ( 
-            <View key={eletricista.id} style={styles.card}>
-              <View style={styles.cardHeader}>
-                
-                <Text style={styles.cardTitle}>{eletricista.nome}</Text>
+        <Text style={estilos.subtitulo2}>Nossos Eletricistas</Text>
+        {prestadoresFiltrados.length > 0 ? (
+          prestadoresFiltrados.map((item) => (
+            <View key={item.id} style={estilos.card}>
+              <View style={estilos.cardHeader}>
+                <Text style={estilos.cardTitle}>{item.nome}</Text>
               </View>
-             
-              <Text style={styles.cardText}>{eletricista.titulo}</Text>
-              <Text style={styles.cardText}>{eletricista.descricao}</Text>
-              <Text style={styles.cardPrice}>
-                
-                {formatarPreco(eletricista.preco)}
-              </Text>
+              <Text style={estilos.cardText}>{item.titulo}</Text>
+              <Text style={estilos.cardText}>{item.descricao}</Text>
+              <Text style={estilos.cardPrice}>{formatarPreco(item.preco)}</Text>
               <TouchableOpacity
                 onPress={() =>
                   Linking.openURL(
-                    
-                    `https://wa.me/55${eletricista.telefone.replace(
-                      /[^\d]/g,
-                      ""
-                    )}`
+                    `https://wa.me/55${item.telefone?.replace(/[^\d]/g, "")}`
                   )
                 }
-                style={styles.whatsappButton}
+                style={{ marginTop: 10 }}
               >
-                <Text style={styles.whatsappText}>Contato via WhatsApp</Text>
+                <Text style={{ color: "#22c55e" }}>Contato via WhatsApp</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={styles.hireButton}
-                
-                onPress={() => handleCheckAvailability(eletricista)}
+                style={estilos.botaoContratar}
+                onPress={() => verAgenda(item)}
               >
-                <Text style={styles.buttonText}>
-                  
-                  Contratar {eletricista.nome}
-                </Text>
+                <Text style={estilos.textoBotao}>Ver Agenda</Text>
               </TouchableOpacity>
             </View>
           ))
         ) : (
-          <Text style={styles.noDataText}>
-            Nenhum eletricista disponível com os filtros selecionados.
+          <Text style={estilos.textoNenhum}>
+            Nenhum eletricista disponível no momento.
           </Text>
         )}
       </View>
-      <Modal visible={showPopup} transparent animationType="slide">
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>
-              Disponibilidade de {selectedEletricista?.nome}
-            </Text>
-            <Text>Selecione a data e o horário desejado:</Text>
-
-            <TouchableOpacity
-              onPress={() => setShowStartPicker(true)}
-              style={styles.dateButton}
-            >
-              <Text>
-                {selectedStartDate
-                  ? selectedStartDate.toLocaleString("pt-BR")
-                  : "Data e Hora Inicial"}
-              </Text>
-            </TouchableOpacity>
-            {showStartPicker && (
-              <DateTimePicker
-                value={selectedStartDate || new Date()}
-                mode="datetime"
-                display="default"
-                minimumDate={new Date()}
-                onChange={(event, date) => {
-                  setShowStartPicker(false);
-                  if (date && !isDateOccupied(date)) setSelectedStartDate(date);
-                }}
-              />
-            )}
-
-            <TouchableOpacity
-              onPress={() => setShowEndPicker(true)}
-              style={styles.dateButton}
-              disabled={!selectedStartDate}
-            >
-              <Text>
-                {selectedEndDate
-                  ? selectedEndDate.toLocaleString("pt-BR")
-                  : "Data e Hora Final"}
-              </Text>
-            </TouchableOpacity>
-            {showEndPicker && (
-              <DateTimePicker
-                value={selectedEndDate || selectedStartDate || new Date()}
-                mode="datetime"
-                display="default"
-                minimumDate={selectedStartDate}
-                onChange={(event, date) => {
-                  setShowEndPicker(false);
-                  if (date) setSelectedEndDate(date);
-                }}
-              />
-            )}
-
-            <TextInput
-              style={styles.textArea}
-              value={observacoes}
-              onChangeText={setObservacoes}
-              placeholder="Adicione observações (opcional)"
-              multiline
-            />
-
-            <View style={styles.modalButtons}>
-              <TouchableOpacity
-                style={styles.cancelButton}
-                onPress={closePopup}
-              >
-                <Text>Cancelar</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.confirmButton}
-                onPress={handleConfirmation}
-                disabled={!selectedStartDate || !selectedEndDate}
-              >
-                <Text style={styles.buttonText}>Confirmar</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
-
-     
-      <Modal visible={showConfirmationPopup} transparent animationType="slide">
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Contratação Confirmada!</Text>
-            <Text>
-             
-              A contratação do eletricista {selectedEletricista?.nome} foi
-              realizada com sucesso!
-            </Text>
-            <TouchableOpacity
-              style={styles.confirmButton}
-              onPress={handleRedirect}
-            >
-              <Text style={styles.buttonText}>Ver Solicitações</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
+      <CalendarioContratacao
+        visivel={modalCalendarioVisivel}
+        fecharModal={() => definirModalCalendarioVisivel(false)}
+        datasOcupadas={datasOcupadas}
+        diaSelecionado={diaSelecionado}
+        definirDiaSelecionado={definirDiaSelecionado}
+        mostrarHorarioInicial={mostrarHorarioInicial}
+        definirMostrarHorarioInicial={definirMostrarHorarioInicial}
+        mostrarHorarioFinal={mostrarHorarioFinal}
+        definirMostrarHorarioFinal={definirMostrarHorarioFinal}
+        horarioInicial={horarioInicial}
+        definirHorarioInicial={definirHorarioInicial}
+        horarioFinal={horarioFinal}
+        definirHorarioFinal={definirHorarioFinal}
+        observacoes={observacoes}
+        definirObservacoes={definirObservacoes}
+        confirmarContratacao={confirmarContratacao}
+        prestadorSelecionado={prestadorSelecionado}
+        popupConfirmacao={popupConfirmacao}
+        redirecionar={redirecionar}
+      />
     </ScrollView>
   );
-};
+}
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#075985" },
-  navBar: { padding: 10, backgroundColor: "#0284c7" },
-  navText: { color: "#fff", fontSize: 18 },
-  content: { padding: 20 },
-  title: {
+const estilos = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#075985",
+  },
+  navBar: {
+    padding: 10,
+    backgroundColor: "#0284c7",
+  },
+  navText: {
+    color: "#fff",
+    fontSize: 18,
+  },
+  conteudo: {
+    padding: 20,
+  },
+  titulo: {
     fontSize: 24,
     fontWeight: "bold",
     color: "#fff",
     textAlign: "center",
     marginBottom: 10,
   },
-  subtitle: {
+  subtitulo: {
     fontSize: 16,
     color: "#fff",
     textAlign: "center",
     marginBottom: 20,
   },
-  sectionTitle: {
+  subtitulo2: {
     fontSize: 20,
     fontWeight: "600",
     color: "#fff",
     textAlign: "center",
     marginBottom: 15,
-  },
-  filterContainer: { marginBottom: 20 },
-  input: {
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 5,
-    padding: 10,
-    marginBottom: 10,
-    backgroundColor: "#fff",
-  },
-  dateButton: {
-    padding: 10,
-    backgroundColor: "#e5e7eb",
-    borderRadius: 5,
-    marginBottom: 10,
-    alignItems: "center",
-  },
-  filterButton: {
-    backgroundColor: "#0284c7",
-    padding: 10,
-    borderRadius: 5,
-    alignItems: "center",
   },
   card: {
     backgroundColor: "#fff",
@@ -523,60 +275,37 @@ const styles = StyleSheet.create({
     shadowRadius: 5,
     elevation: 3,
   },
-  cardHeader: { flexDirection: "row", justifyContent: "space-between" },
-  cardTitle: { fontSize: 18, fontWeight: "bold", color: "#075985" },
-  cardText: { color: "#4b5563" },
-  cardPrice: { fontWeight: "600", color: "#0284c7" },
-  whatsappButton: { marginTop: 10 },
-  whatsappText: { color: "#22c55e" },
-  hireButton: {
+  cardHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  cardTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#075985",
+  },
+  cardText: {
+    color: "#4b5563",
+    marginTop: 3,
+  },
+  cardPrice: {
+    fontWeight: "600",
+    color: "#0284c7",
+    marginTop: 5,
+  },
+  botaoContratar: {
     backgroundColor: "#0284c7",
     padding: 10,
     borderRadius: 5,
     alignItems: "center",
     marginTop: 10,
   },
-  buttonText: { color: "#fff", fontWeight: "600" },
-  noDataText: { color: "#fff", textAlign: "center" },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.5)",
-    justifyContent: "center",
-    alignItems: "center",
+  textoBotao: {
+    color: "#fff",
+    fontWeight: "600",
   },
-  modalContent: {
-    backgroundColor: "#fff",
-    padding: 20,
-    borderRadius: 10,
-    width: "80%",
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-    color: "#075985",
-    marginBottom: 10,
-  },
-  textArea: {
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 5,
-    padding: 10,
-    height: 100,
-    marginBottom: 10,
-  },
-  modalButtons: { flexDirection: "row", justifyContent: "flex-end" },
-  cancelButton: {
-    padding: 10,
-    backgroundColor: "#d1d5db",
-    borderRadius: 5,
-    marginRight: 10,
-  },
-  confirmButton: {
-    padding: 10,
-    backgroundColor: "#0284c7",
-    borderRadius: 5,
+  textoNenhum: {
+    color: "#fff",
+    textAlign: "center",
   },
 });
-
-
-export default Eletricista;

@@ -1,132 +1,119 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Alert } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import api from '../services/api';
 
-const Perfil = () => {
-    const [originalData] = useState({
-        email: 'usuario@email.com',
-        senha: '',
-        telefone: '',
-        cepInput: '',
-        uf: '',
-        cidade: '',
-        bairro: '',
-        logradouro: '',
-        numero: '',
-        complemento: ''
-    });
-
-    const [email, setEmail] = useState(originalData.email);
-    const [senha, setSenha] = useState(originalData.senha);
-    const [telefone, setTelefone] = useState(originalData.telefone);
-    const [cepInput, setCepInput] = useState(originalData.cepInput);
-    const [uf, setUf] = useState(originalData.uf);
-    const [cidade, setCidade] = useState(originalData.cidade);
-    const [bairro, setBairro] = useState(originalData.bairro);
-    const [logradouro, setLogradouro] = useState(originalData.logradouro);
-    const [numero, setNumero] = useState(originalData.numero);
-    const [complemento, setComplemento] = useState(originalData.complemento);
+const MinhaConta = () => {
+    const [originalData, setOriginalData] = useState(null);
+    const [email, setEmail] = useState('');
+    const [senha, setSenha] = useState('');
+    const [telefone, setTelefone] = useState('');
+    const [cepInput, setCepInput] = useState('');
+    const [cidade, setCidade] = useState('');
+    const [bairro, setBairro] = useState('');
+    const [logradouro, setLogradouro] = useState('');
+    const [numero, setNumero] = useState('');
+    const [complemento, setComplemento] = useState('');
     const [isEditing, setIsEditing] = useState(false);
-    
-    const handleSave = () => {
-        console.log('Dados salvos:', { email, senha, telefone, cepInput, uf, cidade, bairro, logradouro, numero, complemento });
-        setIsEditing(false);
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchUserData = async () => {
+            const token = await AsyncStorage.getItem('acessToken');
+            if (!token) {
+                Alert.alert('Erro', 'Usuário não autenticado');
+                return;
+            }
+            try {
+                const response = await api.get('/clientes', {
+                    headers: { Authorization: `Bearer ${token}` },
+                });
+                const userData = response.data;
+                setOriginalData(userData);
+                setEmail(userData.email);
+                setTelefone(userData.telefone);
+                setCepInput(userData.cep);
+                setCidade(userData.cidade);
+                setBairro(userData.bairro);
+                setLogradouro(userData.logradouro);
+                setNumero(userData.numero);
+                setComplemento(userData.complemento);
+            } catch (error) {
+                Alert.alert('Erro', 'Falha ao carregar os dados do usuário');
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        fetchUserData();
+    }, []);
+
+    const handleSave = async () => {
+        const token = await AsyncStorage.getItem('acessToken');
+        if (!token) {
+            Alert.alert('Erro', 'Usuário não autenticado');
+            return;
+        }
+        try {
+            const dataToUpdate = {
+                email, 
+                telefone, 
+                cep: cepInput, 
+                cidade, 
+                bairro, 
+                logradouro, 
+                numero, 
+                complemento
+            };
+
+            if (senha) {
+                dataToUpdate.senha = senha;
+            }
+
+            await api.put('/clientes', dataToUpdate, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            Alert.alert('Sucesso', 'Dados atualizados com sucesso!');
+            setIsEditing(false);
+        } catch (error) {
+            Alert.alert('Erro', 'Falha ao atualizar os dados');
+        }
     };
-    
+
     const handleEdit = () => {
         setIsEditing(!isEditing);
     };
-    
+
     const handleCancel = () => {
-        setEmail(originalData.email);
-        setSenha(originalData.senha);
-        setTelefone(originalData.telefone);
-        setCepInput(originalData.cepInput);
-        setUf(originalData.uf);
-        setCidade(originalData.cidade);
-        setBairro(originalData.bairro);
-        setLogradouro(originalData.logradouro);
-        setNumero(originalData.numero);
-        setComplemento(originalData.complemento);
+        if (originalData) {
+            setEmail(originalData.email);
+            setTelefone(originalData.telefone);
+            setCepInput(originalData.cep);
+            setCidade(originalData.cidade);
+            setBairro(originalData.bairro);
+            setLogradouro(originalData.logradouro);
+            setNumero(originalData.numero);
+            setComplemento(originalData.complemento);
+        }
+        setSenha('');
         setIsEditing(false);
     };
+
+    if (isLoading) {
+        return <ActivityIndicator size="large" color="#0369A1" style={{ flex: 1, justifyContent: 'center' }} />;
+    }
 
     return (
         <View style={styles.container}>
             <Text style={styles.title}>Minha Conta</Text>
-            <TextInput
-                style={styles.input}
-                placeholder="E-mail"
-                value={email}
-                onChangeText={setEmail}
-                editable={isEditing}
-            />
-            <TextInput
-                style={styles.input}
-                placeholder="Senha"
-                secureTextEntry
-                value={senha}
-                onChangeText={setSenha}
-                editable={isEditing}
-            />
-            <TextInput
-                style={styles.input}
-                placeholder="Telefone"
-                keyboardType="phone-pad"
-                value={telefone}
-                onChangeText={setTelefone}
-                editable={isEditing}
-            />
-            <TextInput
-                style={styles.input}
-                placeholder="CEP"
-                keyboardType="numeric"
-                value={cepInput}
-                onChangeText={setCepInput}
-                editable={isEditing}
-            />
-            <TextInput
-                style={styles.input}
-                placeholder="UF"
-                value={uf}
-                onChangeText={setUf}
-                editable={isEditing}
-            />
-            <TextInput
-                style={styles.input}
-                placeholder="Cidade"
-                value={cidade}
-                onChangeText={setCidade}
-                editable={isEditing}
-            />
-            <TextInput
-                style={styles.input}
-                placeholder="Bairro"
-                value={bairro}
-                onChangeText={setBairro}
-                editable={isEditing}
-            />
-            <TextInput
-                style={styles.input}
-                placeholder="Logradouro"
-                value={logradouro}
-                onChangeText={setLogradouro}
-                editable={isEditing}
-            />
-            <TextInput
-                style={styles.input}
-                placeholder="Número"
-                keyboardType="numeric"
-                value={numero}
-                onChangeText={setNumero}
-                editable={isEditing}
-            />
-            <TextInput
-                style={styles.input}
-                placeholder="Complemento"
-                value={complemento}
-                onChangeText={setComplemento}
-                editable={isEditing}
-            />
+            <TextInput style={styles.input} placeholder="E-mail" value={email} onChangeText={setEmail} editable={isEditing} />
+            <TextInput style={styles.input} placeholder="Senha" secureTextEntry value={senha} onChangeText={setSenha} editable={isEditing} />
+            <TextInput style={styles.input} placeholder="Telefone" keyboardType="phone-pad" value={telefone} onChangeText={setTelefone} editable={isEditing} />
+            <TextInput style={styles.input} placeholder="CEP" keyboardType="numeric" value={cepInput} onChangeText={setCepInput} editable={isEditing} />
+            <TextInput style={styles.input} placeholder="Cidade" value={cidade} onChangeText={setCidade} editable={isEditing} />
+            <TextInput style={styles.input} placeholder="Bairro" value={bairro} onChangeText={setBairro} editable={isEditing} />
+            <TextInput style={styles.input} placeholder="Logradouro" value={logradouro} onChangeText={setLogradouro} editable={isEditing} />
+            <TextInput style={styles.input} placeholder="Número" keyboardType="numeric" value={numero} onChangeText={setNumero} editable={isEditing} />
+            <TextInput style={styles.input} placeholder="Complemento" value={complemento} onChangeText={setComplemento} editable={isEditing} />
             <TouchableOpacity style={styles.button} onPress={isEditing ? handleSave : handleEdit}>
                 <Text style={styles.buttonText}>{isEditing ? 'Salvar' : 'Editar'}</Text>
             </TouchableOpacity>
@@ -146,12 +133,12 @@ const styles = StyleSheet.create({
         backgroundColor: '#fff',
     },
     title: {
-        fontSize: 22,
+        fontSize: 24,
         fontWeight: 'bold',
-        marginBottom: 30,
+        color: '#0369A1',
+        marginBottom: 20,
         marginTop: 60,
         textAlign: 'center',
-        color: "#0369A1",
     },
     input: {
         height: 40,
@@ -193,4 +180,4 @@ const styles = StyleSheet.create({
     }
 });
 
-export default Perfil;
+export default MinhaConta;
