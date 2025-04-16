@@ -34,7 +34,6 @@ export default function Chaveiro() {
   const [popupConfirmacao, definirPopupConfirmacao] = useState(false);
   const navegacao = useNavigation();
 
-  // Busca os prestadores ao carregar o componente
   async function buscarPrestadores() {
     try {
       const resposta = await api.get("/chaveiro");
@@ -50,7 +49,6 @@ export default function Chaveiro() {
     buscarPrestadores();
   }, []);
 
-  // Função de filtragem dos prestadores
   function aoFiltrar() {
     const filtrados = prestadores.filter((item) => {
       let valido = true;
@@ -63,9 +61,8 @@ export default function Chaveiro() {
     definirPrestadoresFiltrados(filtrados);
   }
 
-  // Função para exibir a agenda do prestador
   async function verAgenda(item) {
-    console.log("Iniciando verAgenda para prestador ID:", item.id); // Depuração
+    console.log("Iniciando verAgenda para prestador ID:", item.id); 
     definirPrestadorSelecionado(item);
     definirDiaSelecionado(null);
     definirHorarioInicial(null);
@@ -74,11 +71,10 @@ export default function Chaveiro() {
 
     try {
       const resposta = await api.get(`/prestadores/${item.id}/schedule`);
-      console.log("Resposta da API para agenda:", resposta.data); // Depuração
+      console.log("Resposta da API para agenda:", resposta.data); 
       const agendamento = resposta.data;
       const marcacoes = {};
 
-      // Processa as datas ocupadas
       agendamento.forEach((evento) => {
         const inicio = new Date(evento.data_inicio);
         const fim = new Date(evento.data_fim);
@@ -99,8 +95,8 @@ export default function Chaveiro() {
       });
 
       definirDatasOcupadas(marcacoes);
-      definirModalCalendarioVisivel(true); // Abre o modal
-      console.log("Modal visível definido como true"); // Depuração
+      definirModalCalendarioVisivel(true); 
+      console.log("Modal visível definido como true"); 
     } catch (erro) {
       console.error("Erro ao carregar agenda:", erro);
       Alert.alert(
@@ -110,7 +106,6 @@ export default function Chaveiro() {
     }
   }
 
-  // Formata a data para envio ao backend
   function formatarData(dayString, dataHora) {
     if (!dayString || !dataHora) return null;
     const [ano, mes, dia] = dayString.split("-");
@@ -119,7 +114,6 @@ export default function Chaveiro() {
     return `${ano}-${mes}-${dia} ${hora}:${minuto}:00`;
   }
 
-  // Confirma a contratação
   async function confirmarContratacao() {
     if (!diaSelecionado || !horarioInicial || !horarioFinal) {
       Alert.alert("Dados incompletos", "Selecione dia e horários.");
@@ -151,13 +145,11 @@ export default function Chaveiro() {
     }
   }
 
-  // Redireciona após confirmação
   function redirecionar() {
     definirPopupConfirmacao(false);
     navegacao.navigate("Pedidos");
   }
 
-  // Formata o preço
   function formatarPreco(valor) {
     return `R$ ${parseFloat(valor).toFixed(2)} por diária`;
   }
@@ -239,8 +231,6 @@ export default function Chaveiro() {
     </ScrollView>
   );
 }
-
-// Estilos permanecem iguais ao original (omitidos por brevidade, mas devem ser mantidos)
 
 const estilos = StyleSheet.create({
   container: {
