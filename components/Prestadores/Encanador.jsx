@@ -5,7 +5,6 @@ import {
   ScrollView,
   TouchableOpacity,
   StyleSheet,
-  TextInput,
   Linking,
   Alert,
 } from "react-native";
@@ -16,29 +15,39 @@ import FiltroPrestadores from "../FiltroPrestadores";
 import CalendarioContratacao from "../CalendarioContratacao";
 
 export default function Encanador() {
-  const [nota, definirNota] = useState("");
-  const [precoMin, definirPrecoMin] = useState("");
-  const [precoMax, definirPrecoMax] = useState("");
-  const [prestadores, definirPrestadores] = useState([]);
-  const [prestadoresFiltrados, definirPrestadoresFiltrados] = useState([]);
-  const [prestadorSelecionado, definirPrestadorSelecionado] = useState(null);
-  const [datasOcupadas, definirDatasOcupadas] = useState({});
-  const [diaSelecionado, definirDiaSelecionado] = useState(null);
-  const [mostrarHorarioInicial, definirMostrarHorarioInicial] = useState(false);
-  const [mostrarHorarioFinal, definirMostrarHorarioFinal] = useState(false);
-  const [horarioInicial, definirHorarioInicial] = useState(null);
-  const [horarioFinal, definirHorarioFinal] = useState(null);
-  const [observacoes, definirObservacoes] = useState("");
-  const [modalCalendarioVisivel, definirModalCalendarioVisivel] = useState(false);
-  const [popupConfirmacao, definirPopupConfirmacao] = useState(false);
+  const [nota, setNota] = useState("");
+  const [precoMin, setPrecoMin] = useState("");
+  const [precoMax, setPrecoMax] = useState("");
+
+  const [prestadores, setPrestadores] = useState([]);
+  const [prestadoresFiltrados, setPrestadoresFiltrados] = useState([]);
+
+  const [prestadorSelecionado, setPrestadorSelecionado] = useState(null);
+  const [datasOcupadas, setDatasOcupadas] = useState({});
+
+ 
+  const [dataInicio, setDataInicio] = useState(null);
+  const [dataFim, setDataFim] = useState(null);
+
+  
+  const [mostrarHorarioInicial, setMostrarHorarioInicial] = useState(false);
+  const [mostrarHorarioFinal, setMostrarHorarioFinal] = useState(false);
+  const [horarioInicial, setHorarioInicial] = useState(null);
+  const [horarioFinal, setHorarioFinal] = useState(null);
+
+  const [observacoes, setObservacoes] = useState("");
+
+  const [modalCalendarioVisivel, setModalCalendarioVisivel] = useState(false);
+  const [popupConfirmacao, setPopupConfirmacao] = useState(false);
+
   const navegacao = useNavigation();
 
   async function buscarPrestadores() {
     try {
       const resposta = await api.get("/encanador");
-      definirPrestadores(resposta.data);
-      definirPrestadoresFiltrados(resposta.data);
-    } catch (erro) {
+      setPrestadores(resposta.data);
+      setPrestadoresFiltrados(resposta.data);
+    } catch {
       Alert.alert("Erro", "Não foi possível buscar prestadores.");
     }
   }
@@ -47,42 +56,34 @@ export default function Encanador() {
     buscarPrestadores();
   }, []);
 
-  function aoFiltrar() {
-    const filtrados = prestadores.filter((item) => {
+  function filtrar() {
+    const filtrados = prestadores.filter((p) => {
       let valido = true;
-      if (nota) {
-        valido = valido && parseInt(item.nota, 10) === parseInt(nota, 10);
-      }
-      if (precoMin) {
-        valido = valido && item.preco >= parseFloat(precoMin);
-      }
-      if (precoMax) {
-        valido = valido && item.preco <= parseFloat(precoMax);
-      }
+      if (nota) valido = valido && parseInt(p.nota, 10) === parseInt(nota, 10);
+      if (precoMin) valido = valido && p.preco >= parseFloat(precoMin);
+      if (precoMax) valido = valido && p.preco <= parseFloat(precoMax);
       return valido;
     });
-    definirPrestadoresFiltrados(filtrados);
+    setPrestadoresFiltrados(filtrados);
   }
 
   async function verAgenda(item) {
-    definirPrestadorSelecionado(item);
-    definirDiaSelecionado(null);
-    definirHorarioInicial(null);
-    definirHorarioFinal(null);
-    definirObservacoes("");
+    setPrestadorSelecionado(item);
+    setDataInicio(null);
+    setDataFim(null);
+    setHorarioInicial(null);
+    setHorarioFinal(null);
+    setObservacoes("");
+
     try {
-      const resposta = await api.get(`/prestadores/${item.id}/schedule`);
-      const agendamento = resposta.data;
+      const { data } = await api.get(`/prestadores/${item.id}/schedule`);
       const marcacoes = {};
-      agendamento.forEach((evento) => {
+      data.forEach((evento) => {
         const inicio = new Date(evento.data_inicio);
         const fim = new Date(evento.data_fim);
         const atual = new Date(inicio);
         while (atual <= fim) {
-          const ano = atual.getFullYear();
-          const mes = String(atual.getMonth() + 1).padStart(2, "0");
-          const dia = String(atual.getDate()).padStart(2, "0");
-          const chave = `${ano}-${mes}-${dia}`;
+          const chave = atual.toISOString().slice(0, 10);
           marcacoes[chave] = {
             disabled: true,
             marked: true,
@@ -92,62 +93,61 @@ export default function Encanador() {
           atual.setDate(atual.getDate() + 1);
         }
       });
-      definirDatasOcupadas(marcacoes);
-      definirModalCalendarioVisivel(true);
-    } catch (erro) {
+      setDatasOcupadas(marcacoes);
+      setModalCalendarioVisivel(true);
+    } catch {
       Alert.alert("Erro", "Não foi possível carregar a agenda.");
     }
   }
 
-  function formatarData(dayString, dataHora) {
-    if (!dayString || !dataHora) return null;
-    const [ano, mes, dia] = dayString.split("-");
-    const hora = String(dataHora.getHours()).padStart(2, "0");
-    const minuto = String(dataHora.getMinutes()).padStart(2, "0");
-    return `${ano}-${mes}-${dia} ${hora}:${minuto}:00`;
+  function formatarData(diaISO, hora) {
+    if (!diaISO || !hora) return null;
+    const [ano, mes, dia] = diaISO.split("-");
+    const hh = String(hora.getHours()).padStart(2, "0");
+    const mm = String(hora.getMinutes()).padStart(2, "0");
+    return `${ano}-${mes}-${dia} ${hh}:${mm}:00`;
   }
 
   async function confirmarContratacao() {
-    if (!diaSelecionado || !horarioInicial || !horarioFinal) {
-      Alert.alert("Dados incompletos", "Selecione dia e horários.");
+    if (!dataInicio || !horarioInicial || !dataFim || !horarioFinal) {
+      Alert.alert("Dados incompletos", "Selecione período e horários.");
       return;
     }
-    const dataInicio = formatarData(diaSelecionado, horarioInicial);
-    const dataFim = formatarData(diaSelecionado, horarioFinal);
-    if (!dataInicio || !dataFim) {
-      Alert.alert("Erro", "Não foi possível formatar a data/hora.");
+
+    const inicioSQL = formatarData(dataInicio, horarioInicial);
+    const fimSQL = formatarData(dataFim, horarioFinal);
+
+    if (!inicioSQL || !fimSQL) {
+      Alert.alert("Erro", "Não foi possível formatar data/hora.");
       return;
     }
+
     try {
       const token = await AsyncStorage.getItem("acessToken");
       await api.post(
         "/contrato",
         {
           prestadorId: prestadorSelecionado.id,
-          dataInicio,
-          dataFim,
+          dataInicio: inicioSQL,
+          dataFim: fimSQL,
           observacao: observacoes,
         },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
+        { headers: { Authorization: `Bearer ${token}` } }
       );
-      definirModalCalendarioVisivel(false);
-      definirPopupConfirmacao(true);
-    } catch (erro) {
+      setModalCalendarioVisivel(false);
+      setPopupConfirmacao(true);
+    } catch {
       Alert.alert("Erro", "Falha ao confirmar contratação.");
     }
   }
 
   function redirecionar() {
-    definirPopupConfirmacao(false);
+    setPopupConfirmacao(false);
     navegacao.navigate("Pedidos");
   }
 
-  function formatarPreco(valor) {
-    return `R$ ${parseFloat(valor).toFixed(2)} por diária`;
+  function valorFormatado(v) {
+    return `R$ ${parseFloat(v).toFixed(2)} por diária`;
   }
 
   return (
@@ -155,43 +155,49 @@ export default function Encanador() {
       <View style={[estilos.navBar, { paddingTop: 40 }]}>
         <Text style={estilos.navText}>Home</Text>
       </View>
+
       <View style={estilos.conteudo}>
         <Text style={estilos.titulo}>Serviços de Encanador</Text>
         <Text style={estilos.subtitulo}>
           Oferecemos serviços de encanador de alta qualidade.
         </Text>
+
         <FiltroPrestadores
           nota={nota}
-          definirNota={definirNota}
+          definirNota={setNota}
           precoMin={precoMin}
-          definirPrecoMin={definirPrecoMin}
+          definirPrecoMin={setPrecoMin}
           precoMax={precoMax}
-          definirPrecoMax={definirPrecoMax}
-          aoFiltrar={aoFiltrar}
+          definirPrecoMax={setPrecoMax}
+          aoFiltrar={filtrar}
         />
+
         <Text style={estilos.subtitulo2}>Nossos Encanadores</Text>
-        {prestadoresFiltrados.length > 0 ? (
-          prestadoresFiltrados.map((item) => (
-            <View key={item.id} style={estilos.card}>
+
+        {prestadoresFiltrados.length ? (
+          prestadoresFiltrados.map((p) => (
+            <View key={p.id} style={estilos.card}>
               <View style={estilos.cardHeader}>
-                <Text style={estilos.cardTitle}>{item.nome}</Text>
+                <Text style={estilos.cardTitle}>{p.nome}</Text>
               </View>
-              <Text style={estilos.cardText}>{item.titulo}</Text>
-              <Text style={estilos.cardText}>{item.descricao}</Text>
-              <Text style={estilos.cardPrice}>{formatarPreco(item.preco)}</Text>
+              <Text style={estilos.cardText}>{p.titulo}</Text>
+              <Text style={estilos.cardText}>{p.descricao}</Text>
+              <Text style={estilos.cardPrice}>{valorFormatado(p.preco)}</Text>
+
               <TouchableOpacity
                 onPress={() =>
                   Linking.openURL(
-                    `https://wa.me/55${item.telefone?.replace(/[^\d]/g, "")}`
+                    `https://wa.me/55${p.telefone?.replace(/[^\d]/g, "")}`
                   )
                 }
                 style={{ marginTop: 10 }}
               >
                 <Text style={{ color: "#22c55e" }}>Contato via WhatsApp</Text>
               </TouchableOpacity>
+
               <TouchableOpacity
                 style={estilos.botaoContratar}
-                onPress={() => verAgenda(item)}
+                onPress={() => verAgenda(p)}
               >
                 <Text style={estilos.textoBotao}>Ver Agenda</Text>
               </TouchableOpacity>
@@ -203,22 +209,25 @@ export default function Encanador() {
           </Text>
         )}
       </View>
+
       <CalendarioContratacao
         visivel={modalCalendarioVisivel}
-        fecharModal={() => definirModalCalendarioVisivel(false)}
+        fecharModal={() => setModalCalendarioVisivel(false)}
         datasOcupadas={datasOcupadas}
-        diaSelecionado={diaSelecionado}
-        definirDiaSelecionado={definirDiaSelecionado}
+        dataInicio={dataInicio}
+        definirDataInicio={setDataInicio}
+        dataFim={dataFim}
+        definirDataFim={setDataFim}
         mostrarHorarioInicial={mostrarHorarioInicial}
-        definirMostrarHorarioInicial={definirMostrarHorarioInicial}
+        definirMostrarHorarioInicial={setMostrarHorarioInicial}
         mostrarHorarioFinal={mostrarHorarioFinal}
-        definirMostrarHorarioFinal={definirMostrarHorarioFinal}
+        definirMostrarHorarioFinal={setMostrarHorarioFinal}
         horarioInicial={horarioInicial}
-        definirHorarioInicial={definirHorarioInicial}
+        definirHorarioInicial={setHorarioInicial}
         horarioFinal={horarioFinal}
-        definirHorarioFinal={definirHorarioFinal}
+        definirHorarioFinal={setHorarioFinal}
         observacoes={observacoes}
-        definirObservacoes={definirObservacoes}
+        definirObservacoes={setObservacoes}
         confirmarContratacao={confirmarContratacao}
         prestadorSelecionado={prestadorSelecionado}
         popupConfirmacao={popupConfirmacao}
@@ -229,21 +238,10 @@ export default function Encanador() {
 }
 
 const estilos = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#075985",
-  },
-  navBar: {
-    padding: 10,
-    backgroundColor: "#0284c7",
-  },
-  navText: {
-    color: "#fff",
-    fontSize: 18,
-  },
-  conteudo: {
-    padding: 20,
-  },
+  container: { flex: 1, backgroundColor: "#075985" },
+  navBar: { padding: 10, backgroundColor: "#0284c7" },
+  navText: { color: "#fff", fontSize: 18 },
+  conteudo: { padding: 20 },
   titulo: {
     fontSize: 24,
     fontWeight: "bold",
@@ -275,24 +273,10 @@ const estilos = StyleSheet.create({
     shadowRadius: 5,
     elevation: 3,
   },
-  cardHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-  },
-  cardTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#075985",
-  },
-  cardText: {
-    color: "#4b5563",
-    marginTop: 3,
-  },
-  cardPrice: {
-    fontWeight: "600",
-    color: "#0284c7",
-    marginTop: 5,
-  },
+  cardHeader: { flexDirection: "row", justifyContent: "space-between" },
+  cardTitle: { fontSize: 18, fontWeight: "bold", color: "#075985" },
+  cardText: { color: "#4b5563", marginTop: 3 },
+  cardPrice: { fontWeight: "600", color: "#0284c7", marginTop: 5 },
   botaoContratar: {
     backgroundColor: "#0284c7",
     padding: 10,
@@ -300,12 +284,6 @@ const estilos = StyleSheet.create({
     alignItems: "center",
     marginTop: 10,
   },
-  textoBotao: {
-    color: "#fff",
-    fontWeight: "600",
-  },
-  textoNenhum: {
-    color: "#fff",
-    textAlign: "center",
-  },
+  textoBotao: { color: "#fff", fontWeight: "600" },
+  textoNenhum: { color: "#fff", textAlign: "center" },
 });
