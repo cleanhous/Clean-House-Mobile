@@ -5,7 +5,6 @@ import {
   ScrollView,
   TouchableOpacity,
   StyleSheet,
-  TextInput,
   Linking,
   Alert,
 } from "react-native";
@@ -14,6 +13,8 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import api from "../../services/api";
 import FiltroPrestadores from "../FiltroPrestadores";
 import CalendarioContratacao from "../CalendarioContratacao";
+import NavBarHome from "../NavBarHome";
+
 
 export default function Arquiteto() {
   const [nota, definirNota] = useState("");
@@ -50,15 +51,9 @@ export default function Arquiteto() {
   function aoFiltrar() {
     const filtrados = prestadores.filter((item) => {
       let valido = true;
-      if (nota) {
-        valido = valido && parseInt(item.nota, 10) === parseInt(nota, 10);
-      }
-      if (precoMin) {
-        valido = valido && item.preco >= parseFloat(precoMin);
-      }
-      if (precoMax) {
-        valido = valido && item.preco <= parseFloat(precoMax);
-      }
+      if (nota) valido = valido && parseInt(item.nota, 10) === parseInt(nota, 10);
+      if (precoMin) valido = valido && item.preco >= parseFloat(precoMin);
+      if (precoMax) valido = valido && item.preco <= parseFloat(precoMax);
       return valido;
     });
     definirPrestadoresFiltrados(filtrados);
@@ -83,12 +78,7 @@ export default function Arquiteto() {
           const mes = String(atual.getMonth() + 1).padStart(2, "0");
           const dia = String(atual.getDate()).padStart(2, "0");
           const chave = `${ano}-${mes}-${dia}`;
-          marcacoes[chave] = {
-            disabled: true,
-            marked: true,
-            dotColor: "red",
-            disableTouchEvent: true,
-          };
+          marcacoes[chave] = { disabled: true, marked: true, dotColor: "red", disableTouchEvent: true };
           atual.setDate(atual.getDate() + 1);
         }
       });
@@ -122,17 +112,8 @@ export default function Arquiteto() {
       const token = await AsyncStorage.getItem("acessToken");
       await api.post(
         "/contrato",
-        {
-          prestadorId: prestadorSelecionado.id,
-          dataInicio,
-          dataFim,
-          observacao: observacoes,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
+        { prestadorId: prestadorSelecionado.id, dataInicio, dataFim, observacao: observacoes },
+        { headers: { Authorization: `Bearer ${token}` } }
       );
       definirModalCalendarioVisivel(false);
       definirPopupConfirmacao(true);
@@ -151,15 +132,11 @@ export default function Arquiteto() {
   }
 
   return (
-    <ScrollView style={estilos.container}>
-      <View style={[estilos.navBar, { paddingTop: 40 }]}>
-        <Text style={estilos.navText}>Home</Text>
-      </View>
-      <View style={estilos.conteudo}>
-        <Text style={estilos.titulo}>Serviços de Arquiteto</Text>
-        <Text style={estilos.subtitulo}>
-          Oferecemos serviços de arquiteto de alta qualidade.
-        </Text>
+    <ScrollView style={styles.container}>
+      <NavBarHome title={"Arquiteto"} />
+      <View style={styles.conteudo}>
+        <Text style={styles.titulo}>Serviços de Arquiteto</Text>
+        <Text style={styles.subtitulo}>Oferecemos serviços de arquiteto de alta qualidade.</Text>
         <FiltroPrestadores
           nota={nota}
           definirNota={definirNota}
@@ -169,38 +146,29 @@ export default function Arquiteto() {
           definirPrecoMax={definirPrecoMax}
           aoFiltrar={aoFiltrar}
         />
-        <Text style={estilos.subtitulo2}>Nossos Arquitetos</Text>
+        <Text style={styles.subtitulo2}>Nossos Arquitetos</Text>
         {prestadoresFiltrados.length > 0 ? (
           prestadoresFiltrados.map((item) => (
-            <View key={item.id} style={estilos.card}>
-              <View style={estilos.cardHeader}>
-                <Text style={estilos.cardTitle}>{item.nome}</Text>
+            <View key={item.id} style={styles.card}>
+              <View style={styles.cardHeader}>
+                <Text style={styles.cardTitle}>{item.nome}</Text>
               </View>
-              <Text style={estilos.cardText}>{item.titulo}</Text>
-              <Text style={estilos.cardText}>{item.descricao}</Text>
-              <Text style={estilos.cardPrice}>{formatarPreco(item.preco)}</Text>
+              <Text style={styles.cardText}>{item.titulo}</Text>
+              <Text style={styles.cardText}>{item.descricao}</Text>
+              <Text style={styles.cardPrice}>{formatarPreco(item.preco)}</Text>
               <TouchableOpacity
-                onPress={() =>
-                  Linking.openURL(
-                    `https://wa.me/55${item.telefone?.replace(/[^\d]/g, "")}`
-                  )
-                }
+                onPress={() => Linking.openURL(`https://wa.me/55${item.telefone?.replace(/[^\d]/g, "")}`)}
                 style={{ marginTop: 10 }}
               >
                 <Text style={{ color: "#22c55e" }}>Contato via WhatsApp</Text>
               </TouchableOpacity>
-              <TouchableOpacity
-                style={estilos.botaoContratar}
-                onPress={() => verAgenda(item)}
-              >
-                <Text style={estilos.textoBotao}>Ver Agenda</Text>
+              <TouchableOpacity style={styles.botaoContratar} onPress={() => verAgenda(item)}>
+                <Text style={styles.textoBotao}>Ver Agenda</Text>
               </TouchableOpacity>
             </View>
           ))
         ) : (
-          <Text style={estilos.textoNenhum}>
-            Nenhum arquiteto disponível no momento.
-          </Text>
+          <Text style={styles.textoNenhum}>Nenhum arquiteto disponível no momento.</Text>
         )}
       </View>
       <CalendarioContratacao
@@ -228,18 +196,41 @@ export default function Arquiteto() {
   );
 }
 
-const estilos = StyleSheet.create({
+const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#075985",
   },
   navBar: {
-    padding: 10,
+    flexDirection: "row",
+    alignItems: "center",
     backgroundColor: "#0284c7",
+    paddingTop: 30,
+    paddingBottom: 10,
+    paddingHorizontal: 10,
+    height: 80,
+  },
+  backButton: {
+    width: 48,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  titleContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  navTitle: {
+    color: "#fff",
+    fontSize: 18,
+    fontWeight: "bold",
   },
   navText: {
     color: "#fff",
     fontSize: 18,
+  },
+  placeholderRight: {
+    width: 48,
   },
   conteudo: {
     padding: 20,

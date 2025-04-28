@@ -5,7 +5,6 @@ import {
   ScrollView,
   TouchableOpacity,
   StyleSheet,
-  TextInput,
   Linking,
   Alert,
 } from "react-native";
@@ -14,6 +13,8 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import api from "../../services/api";
 import FiltroPrestadores from "../FiltroPrestadores";
 import CalendarioContratacao from "../CalendarioContratacao";
+import NavBarHome from "../NavBarHome";
+
 
 export default function Eletricista() {
   const [nota, definirNota] = useState("");
@@ -151,13 +152,11 @@ export default function Eletricista() {
   }
 
   return (
-    <ScrollView style={estilos.container}>
-      <View style={[estilos.navBar, { paddingTop: 40 }]}>
-        <Text style={estilos.navText}>Home</Text>
-      </View>
-      <View style={estilos.conteudo}>
-        <Text style={estilos.titulo}>Serviços de Eletricista</Text>
-        <Text style={estilos.subtitulo}>
+    <ScrollView style={styles.container}>
+      <NavBarHome title={"Eletricista"} />
+      <View style={styles.conteudo}>
+        <Text style={styles.titulo}>Serviços de Eletricista</Text>
+        <Text style={styles.subtitulo}>
           Oferecemos serviços de eletricista de alta qualidade.
         </Text>
         <FiltroPrestadores
@@ -169,16 +168,16 @@ export default function Eletricista() {
           definirPrecoMax={definirPrecoMax}
           aoFiltrar={aoFiltrar}
         />
-        <Text style={estilos.subtitulo2}>Nossos Eletricistas</Text>
+        <Text style={styles.subtitulo2}>Nossos Eletricistas</Text>
         {prestadoresFiltrados.length > 0 ? (
           prestadoresFiltrados.map((item) => (
-            <View key={item.id} style={estilos.card}>
-              <View style={estilos.cardHeader}>
-                <Text style={estilos.cardTitle}>{item.nome}</Text>
+            <View key={item.id} style={styles.card}>
+              <View style={styles.cardHeader}>
+                <Text style={styles.cardTitle}>{item.nome}</Text>
               </View>
-              <Text style={estilos.cardText}>{item.titulo}</Text>
-              <Text style={estilos.cardText}>{item.descricao}</Text>
-              <Text style={estilos.cardPrice}>{formatarPreco(item.preco)}</Text>
+              <Text style={styles.cardText}>{item.titulo}</Text>
+              <Text style={styles.cardText}>{item.descricao}</Text>
+              <Text style={styles.cardPrice}>{formatarPreco(item.preco)}</Text>
               <TouchableOpacity
                 onPress={() =>
                   Linking.openURL(
@@ -190,15 +189,15 @@ export default function Eletricista() {
                 <Text style={{ color: "#22c55e" }}>Contato via WhatsApp</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={estilos.botaoContratar}
+                style={styles.botaoContratar}
                 onPress={() => verAgenda(item)}
               >
-                <Text style={estilos.textoBotao}>Ver Agenda</Text>
+                <Text style={styles.textoBotao}>Ver Agenda</Text>
               </TouchableOpacity>
             </View>
           ))
         ) : (
-          <Text style={estilos.textoNenhum}>
+          <Text style={styles.textoNenhum}>
             Nenhum eletricista disponível no momento.
           </Text>
         )}
@@ -228,18 +227,10 @@ export default function Eletricista() {
   );
 }
 
-const estilos = StyleSheet.create({
+const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#075985",
-  },
-  navBar: {
-    padding: 10,
-    backgroundColor: "#0284c7",
-  },
-  navText: {
-    color: "#fff",
-    fontSize: 18,
   },
   conteudo: {
     padding: 20,

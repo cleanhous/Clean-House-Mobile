@@ -9,37 +9,14 @@ import {
   Modal,
   Platform,
   Linking,
-  Alert, // Import Alert for showing warnings
+  Alert,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import DateTimePicker from "@react-native-community/datetimepicker";
-import Icon from "react-native-vector-icons/Ionicons"; // Assuming you have this installed
-import api from "../../services/api"; // Assuming api service is configured
+import api from "../../services/api";
+import NavBarHome from "../NavBarHome";
 
-// Navigation Bar Component
-const NavBarHome = () => {
-  const navigation = useNavigation();
-
-  return (
-    <View style={styles.navBar}>
-      <TouchableOpacity
-        onPress={() => navigation.goBack()}
-        style={styles.backButton}
-      >
-        <Icon name="arrow-back" size={28} color="#fff" />
-      </TouchableOpacity>
-      <View style={styles.titleContainer}>
-        {/* Changed Title */}
-        <Text style={styles.navTitle}>Pintor</Text>
-      </View>
-      <View style={styles.placeholderRight} />
-      {/* Keeps title centered */}
-    </View>
-  );
-};
-
-// Filter Component
 const Filtro = ({
   filtroNota,
   setFiltroNota,
@@ -299,7 +276,7 @@ const Pintor = () => {
 
   return (
     <ScrollView style={styles.container}>
-      <NavBarHome />
+      <NavBarHome title={"Pintor"} />
       <View style={styles.content}>
         <Text style={styles.title}>Serviços de Pintura</Text>
         <Text style={styles.subtitle}>
@@ -477,8 +454,8 @@ const Pintor = () => {
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Contratação Confirmada!</Text>
             <Text>
-              A contratação do pintor{" "}
-              {selectedPintor?.nome} foi realizada com sucesso!
+              A contratação do pintor {selectedPintor?.nome} foi realizada com
+              sucesso!
             </Text>
             <TouchableOpacity
               style={styles.confirmButton}
@@ -495,33 +472,6 @@ const Pintor = () => {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#075985" },
-
-  navBar: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#0284c7",
-    paddingTop: Platform.OS === "ios" ? 40 : 20,
-    paddingBottom: 10,
-    paddingHorizontal: 10,
-    height: Platform.OS === "ios" ? 90 : 70,
-  },
-  backButton: {
-    padding: 10,
-  },
-  titleContainer: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  navTitle: {
-    color: "#fff",
-    fontSize: 18,
-    fontWeight: "bold",
-  },
-  placeholderRight: {
-    width: 48,
-  },
-
   content: { padding: 20 },
   title: {
     fontSize: 24,
