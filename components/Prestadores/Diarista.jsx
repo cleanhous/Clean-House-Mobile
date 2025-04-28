@@ -14,6 +14,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import api from "../../services/api";
 import FiltroPrestadores from "../FiltroPrestadores";
 import CalendarioContratacao from "../CalendarioContratacao";
+import NavBarHome from "../NavBarHome";
 
 export default function Diarista() {
   const [nota, definirNota] = useState("");
@@ -152,9 +153,7 @@ export default function Diarista() {
 
   return (
     <ScrollView style={estilos.container}>
-      <View style={[estilos.navBar, { paddingTop: 40 }]}>
-        <Text style={estilos.navText}>Home</Text>
-      </View>
+      <NavBarHome title={"Diarista"}/>
       <View style={estilos.conteudo}>
         <Text style={estilos.titulo}>Serviços de Diarista</Text>
         <Text style={estilos.subtitulo}>
