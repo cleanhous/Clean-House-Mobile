@@ -15,25 +15,8 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import Icon from "react-native-vector-icons/Ionicons";
 import api from "../../services/api";
+import NavBarHome from "../NavBarHome";
 
-const NavBarHome = () => {
-  const navigation = useNavigation();
-
-  return (
-    <View style={styles.navBar}>
-      <TouchableOpacity
-        onPress={() => navigation.goBack()}
-        style={styles.backButton}
-      >
-        <Icon name="arrow-back" size={28} color="#fff" />
-      </TouchableOpacity>
-      <View style={styles.titleContainer}>
-        <Text style={styles.navTitle}>Assistência Técnica</Text>
-      </View>
-      <View style={styles.placeholderRight} />
-    </View>
-  );
-};
 
 const Filtro = ({
   filtroNota,
@@ -297,7 +280,7 @@ const AssistenciaTecnica = () => {
 
   return (
     <ScrollView style={styles.container}>
-      <NavBarHome />
+      <NavBarHome title={"Assitência Técnica"} />
       <View style={styles.content}>
         <Text style={styles.title}>Serviços de Assistência Técnica</Text>
         <Text style={styles.subtitle}>
@@ -502,33 +485,6 @@ const AssistenciaTecnica = () => {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#075985" },
-
-  navBar: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#0284c7",
-    paddingTop: Platform.OS === "ios" ? 40 : 20,
-    paddingBottom: 10,
-    paddingHorizontal: 10,
-    height: Platform.OS === "ios" ? 90 : 70,
-  },
-  backButton: {
-    padding: 10,
-  },
-  titleContainer: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  navTitle: {
-    color: "#fff",
-    fontSize: 18,
-    fontWeight: "bold",
-  },
-  placeholderRight: {
-    width: 48,
-  },
-
   content: { padding: 20 },
   title: {
     fontSize: 24,

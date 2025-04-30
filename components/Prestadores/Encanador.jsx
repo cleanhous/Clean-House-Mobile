@@ -13,6 +13,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import api from "../../services/api";
 import FiltroPrestadores from "../FiltroPrestadores";
 import CalendarioContratacao from "../CalendarioContratacao";
+import NavBarHome from "../NavBarHome";
 
 export default function Encanador() {
   const [nota, setNota] = useState("");
@@ -152,10 +153,7 @@ export default function Encanador() {
 
   return (
     <ScrollView style={estilos.container}>
-      <View style={[estilos.navBar, { paddingTop: 40 }]}>
-        <Text style={estilos.navText}>Home</Text>
-      </View>
-
+      <NavBarHome title={"Encanador"}/>
       <View style={estilos.conteudo}>
         <Text style={estilos.titulo}>Serviços de Encanador</Text>
         <Text style={estilos.subtitulo}>
@@ -238,10 +236,13 @@ export default function Encanador() {
 }
 
 const estilos = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#075985" },
-  navBar: { padding: 10, backgroundColor: "#0284c7" },
-  navText: { color: "#fff", fontSize: 18 },
-  conteudo: { padding: 20 },
+  container: {
+    flex: 1,
+    backgroundColor: "#075985",
+  },
+  conteudo: {
+    padding: 20,
+  },
   titulo: {
     fontSize: 24,
     fontWeight: "bold",

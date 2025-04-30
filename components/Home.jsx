@@ -23,6 +23,7 @@ import {
 } from "lucide-react-native";
 import { useNavigation } from "@react-navigation/native";
 import FAQ from "./Faq";
+import Footer from "./Footer";
 
 const Home = () => {
   const navigation = useNavigation();
@@ -96,10 +97,7 @@ const Home = () => {
         <Text style={styles.loginText}>Alguma dúvida?</Text>
         <FAQ />
       </View>
-
-      <View>
-        <Text style={styles.placeholderText}>Aqui fica o Footer</Text>
-      </View>
+      <Footer/>
     </ScrollView>
   );
 };
