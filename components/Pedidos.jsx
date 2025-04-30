@@ -8,8 +8,8 @@ import {
   StyleSheet,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
-import NavBarHome from "./NavBarHome.jsx"; 
-import api from "../services/api.js"; 
+import NavBarHome from "./NavBarHome.jsx";
+import api from "../services/api.js";
 
 const Pedidos = () => {
   const navigation = useNavigation();
@@ -31,7 +31,53 @@ const Pedidos = () => {
     }
   };
 
- 
+  const cancelarPedido = async (contratoId) => {
+    try {
+      await api.put(
+        `/contratos/cancelar/${contratoId}`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
+      console.log("Contrato cancelado com sucesso!");
+      fetchContratos();
+    } catch (error) {
+      console.error("Erro ao cancelar contrato:", error);
+    }
+  };
+
+  const handleAvaliarClick = (contrato) => {
+    setSelectedContrato(contrato);
+    setShowModal(true);
+  };
+
+  const enviarAvaliacao = async () => {
+    try {
+      if (estrelas === 0) {
+        alert("Por favor, selecione uma avaliação.");
+        return;
+      }
+
+      await api.put(
+        `/contratos/avaliar/${selectedContrato.id}`,
+        { estrelas },
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
+      console.log("Avaliação enviada com sucesso!");
+      setShowModal(false);
+      setEstrelas(0);
+      fetchContratos();
+    } catch (error) {
+      console.error("Erro ao enviar avaliação:", error);
+    }
+  };
 
   useEffect(() => {
     fetchContratos();
@@ -135,7 +181,7 @@ const Pedidos = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#0ea5e9", 
+    backgroundColor: "#0ea5e9",
   },
   scrollView: {
     padding: 16,
@@ -156,12 +202,12 @@ const styles = StyleSheet.create({
   contratoNome: {
     fontSize: 18,
     fontWeight: "bold",
-    color: "#0369a1", 
+    color: "#0369a1",
   },
   statusCancelado: {
     fontSize: 14,
     fontWeight: "bold",
-    color: "#dc2626", 
+    color: "#dc2626",
   },
   avaliadoContainer: {
     flexDirection: "row",
@@ -171,27 +217,27 @@ const styles = StyleSheet.create({
   statusAvaliado: {
     fontSize: 14,
     fontWeight: "bold",
-    color: "#6b7280", 
+    color: "#6b7280",
   },
   starsContainer: {
     flexDirection: "row",
   },
   starFilled: {
     fontSize: 24,
-    color: "#eab308", 
+    color: "#eab308",
   },
   starEmpty: {
     fontSize: 24,
-    color: "#d1d5db", 
+    color: "#d1d5db",
   },
   avaliarButton: {
-    backgroundColor: "#0284c7", 
+    backgroundColor: "#0284c7",
     padding: 8,
     borderRadius: 8,
     marginTop: 8,
   },
   cancelarButton: {
-    backgroundColor: "#dc2626", 
+    backgroundColor: "#dc2626",
     padding: 8,
     borderRadius: 8,
     marginTop: 8,
@@ -202,7 +248,7 @@ const styles = StyleSheet.create({
   },
   noContratos: {
     textAlign: "center",
-    color: "#6b7280", 
+    color: "#6b7280",
   },
   modalContainer: {
     flex: 1,
@@ -219,17 +265,17 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 20,
     fontWeight: "bold",
-    color: "#0369a1", 
+    color: "#0369a1",
     marginBottom: 16,
   },
   enviarButton: {
-    backgroundColor: "#0284c7", 
+    backgroundColor: "#0284c7",
     padding: 12,
     borderRadius: 8,
     marginTop: 16,
   },
   cancelarModalButton: {
-    backgroundColor: "#d1d5db", 
+    backgroundColor: "#d1d5db",
     borderRadius: 8,
     marginTop: 8,
   },
