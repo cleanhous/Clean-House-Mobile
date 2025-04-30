@@ -16,8 +16,10 @@ export default function CalendarioContratacao({
   visivel,
   fecharModal,
   datasOcupadas,
-  diaSelecionado,
-  definirDiaSelecionado,
+  dataInicio,
+  definirDataInicio,
+  dataFim,
+  definirDataFim,
   mostrarHorarioInicial,
   definirMostrarHorarioInicial,
   mostrarHorarioFinal,
@@ -36,25 +38,46 @@ export default function CalendarioContratacao({
   function aoPressionarDia(dia) {
     const data = dia.dateString;
     if (datasOcupadas[data]?.disabled) {
-      Alert.alert("Data Indisponível", "Este dia já está ocupado.");
+      Alert.alert("Data indisponível", "Este dia já está ocupado.");
       return;
     }
-    definirDiaSelecionado(data);
+    if (!dataInicio || (dataInicio && dataFim)) {
+      definirDataInicio(data);
+      definirDataFim(null);
+      return;
+    }
+    if (new Date(data) < new Date(dataInicio)) {
+      definirDataInicio(data);
+      return;
+    }
+    definirDataFim(data);
   }
 
-  function aoMudarHorarioInicial(evento, data) {
+  function aoMudarHorarioInicial(_, data) {
     definirMostrarHorarioInicial(false);
-    if (data) {
-      definirHorarioInicial(data);
-    }
+    if (data) definirHorarioInicial(data);
   }
 
-  function aoMudarHorarioFinal(evento, data) {
+  function aoMudarHorarioFinal(_, data) {
     definirMostrarHorarioFinal(false);
-    if (data) {
-      definirHorarioFinal(data);
-    }
+    if (data) definirHorarioFinal(data);
   }
+
+  const periodosMarcados = {};
+  if (dataInicio) {
+    periodosMarcados[dataInicio] = { startingDay: true, color: "#0284c7", textColor: "#fff" };
+    const fim = dataFim || dataInicio;
+    let atual = new Date(dataInicio);
+    while (atual <= new Date(fim)) {
+      const chave = atual.toISOString().slice(0, 10);
+      periodosMarcados[chave] = { color: "#7dd3fc", textColor: "#000" };
+      atual.setDate(atual.getDate() + 1);
+    }
+    periodosMarcados[fim] = { ...periodosMarcados[fim], endingDay: true, color: "#0284c7", textColor: "#fff" };
+  }
+
+  const habilitaHorarioFinal =
+    horarioInicial && ((dataFim && dataFim !== dataInicio) || !dataFim);
 
   return (
     <>
@@ -64,32 +87,18 @@ export default function CalendarioContratacao({
             <Text style={estilos.modalTitle}>
               Agenda de {prestadorSelecionado?.nome}
             </Text>
-            <Text style={{ marginBottom: 8 }}>
-              Selecione um dia livre no calendário:
-            </Text>
             <Calendar
               onDayPress={aoPressionarDia}
-              markedDates={{
-                ...datasOcupadas,
-                ...(diaSelecionado
-                  ? {
-                      [diaSelecionado]: {
-                        selected: true,
-                        selectedColor: "#0284c7",
-                      },
-                    }
-                  : {}),
-              }}
+              markedDates={{ ...datasOcupadas, ...periodosMarcados }}
+              markingType="period"
+              theme={{ arrowColor: "#0284c7", todayTextColor: "#0284c7" }}
               style={{ marginBottom: 10 }}
-              theme={{
-                arrowColor: "#0284c7",
-                todayTextColor: "#0284c7",
-              }}
             />
-            {diaSelecionado && (
+            {dataInicio && (
               <>
                 <Text style={{ marginVertical: 5 }}>
-                  Dia escolhido: {diaSelecionado}
+                  Período: {dataInicio}
+                  {dataFim && ` até ${dataFim}`}
                 </Text>
                 <TouchableOpacity
                   style={estilos.botaoData}
@@ -98,7 +107,7 @@ export default function CalendarioContratacao({
                   <Text>
                     {horarioInicial
                       ? `Início: ${horarioInicial.toLocaleTimeString("pt-BR")}`
-                      : "Selecionar Horário Inicial"}
+                      : "Selecionar horário inicial"}
                   </Text>
                 </TouchableOpacity>
                 {mostrarHorarioInicial && (
@@ -107,21 +116,21 @@ export default function CalendarioContratacao({
                     mode="time"
                     display={Platform.OS === "ios" ? "spinner" : "default"}
                     onChange={aoMudarHorarioInicial}
-                    textColor="#999"
+                    {...(Platform.OS === "ios" ? { textColor: "#999" } : {})}
                   />
                 )}
                 <TouchableOpacity
                   style={[
                     estilos.botaoData,
-                    !horarioInicial && { opacity: 0.6 },
+                    !habilitaHorarioFinal && { opacity: 0.6 },
                   ]}
                   onPress={() => definirMostrarHorarioFinal(true)}
-                  disabled={!horarioInicial}
+                  disabled={!habilitaHorarioFinal}
                 >
                   <Text>
                     {horarioFinal
                       ? `Término: ${horarioFinal.toLocaleTimeString("pt-BR")}`
-                      : "Selecionar Horário Final"}
+                      : "Selecionar horário final"}
                   </Text>
                 </TouchableOpacity>
                 {mostrarHorarioFinal && (
@@ -130,7 +139,7 @@ export default function CalendarioContratacao({
                     mode="time"
                     display={Platform.OS === "ios" ? "spinner" : "default"}
                     onChange={aoMudarHorarioFinal}
-                    textColor="#999"
+                    {...(Platform.OS === "ios" ? { textColor: "#999" } : {})}
                   />
                 )}
                 <TextInput
@@ -141,27 +150,33 @@ export default function CalendarioContratacao({
                   onChangeText={definirObservacoes}
                 />
                 <View style={estilos.modalButtons}>
-                  <TouchableOpacity style={estilos.botaoCancelar} onPress={fecharModal}>
+                  <TouchableOpacity
+                    style={estilos.botaoCancelar}
+                    onPress={fecharModal}
+                  >
                     <Text>Fechar</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={[
                       estilos.botaoConfirmar,
-                      (!horarioInicial || !horarioFinal) && {
+                      (!horarioInicial || !habilitaHorarioFinal || !horarioFinal) && {
                         backgroundColor: "#999",
                       },
                     ]}
                     onPress={confirmarContratacao}
-                    disabled={!horarioInicial || !horarioFinal}
+                    disabled={!horarioInicial || !habilitaHorarioFinal || !horarioFinal}
                   >
                     <Text style={estilos.textoBotao}>Confirmar</Text>
                   </TouchableOpacity>
                 </View>
               </>
             )}
-            {!diaSelecionado && (
+            {!dataInicio && (
               <View style={estilos.modalButtons}>
-                <TouchableOpacity style={estilos.botaoCancelar} onPress={fecharModal}>
+                <TouchableOpacity
+                  style={estilos.botaoCancelar}
+                  onPress={fecharModal}
+                >
                   <Text>Fechar</Text>
                 </TouchableOpacity>
               </View>
@@ -169,18 +184,20 @@ export default function CalendarioContratacao({
           </View>
         </View>
       </Modal>
+
       <Modal visible={popupConfirmacao} transparent animationType="slide">
         <View style={estilos.modalOverlay}>
           <View style={estilos.modalContent}>
-            <Text style={estilos.modalTitle}>Contratação Confirmada!</Text>
+            <Text style={estilos.modalTitle}>Contratação confirmada!</Text>
             <Text>
-              A contratação de {prestadorSelecionado?.nome} foi realizada com sucesso!
+              A contratação de {prestadorSelecionado?.nome} foi realizada com
+              sucesso!
             </Text>
             <TouchableOpacity
               style={[estilos.botaoConfirmar, { marginTop: 10 }]}
               onPress={redirecionar}
             >
-              <Text style={estilos.textoBotao}>Ver Solicitações</Text>
+              <Text style={estilos.textoBotao}>Ver solicitações</Text>
             </TouchableOpacity>
           </View>
         </View>
