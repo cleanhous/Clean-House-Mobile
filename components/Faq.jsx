@@ -1,93 +1,101 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import {
   View,
   Text,
   ScrollView,
   TouchableOpacity,
   StyleSheet,
+  Animated,
+  Easing,
 } from "react-native";
 import Icon from "react-native-vector-icons/Feather";
-import { useNavigation } from "@react-navigation/native";
+
+const faqData = [
+  {
+    question: "Os profissionais são confiáveis?",
+    answer:
+      "Todos os profissionais são previamente verificados, possuindo certificações e avaliações de outros clientes, garantindo segurança e qualidade.",
+    icon: "award",
+  },
+  {
+    question: "Como posso acompanhar o status do meu serviço?",
+    answer:
+      "Após contratar um serviço, você pode acompanhar o status em tempo real pelo aplicativo. O profissional enviará atualizações e notificações conforme necessário.",
+    icon: "message-circle",
+  },
+  {
+    question: "Posso escolher o profissional que fará o serviço?",
+    answer:
+      "Sim, você pode visualizar os perfis dos profissionais disponíveis, incluindo suas avaliações e especialidades, para escolher o que mais se adequa às suas necessidades.",
+    icon: "users",
+  },
+  {
+    question: "Como posso entrar em contato com vocês?",
+    answer:
+      "Você pode entrar em contato conosco através do nosso aplicativo ou pelo número de telefone disponível na página de contato.",
+    icon: "phone",
+  },
+];
+
+const FAQItem = ({ item, isExpanded, onToggle }) => {
+  const animation = useRef(new Animated.Value(0)).current;
+
+  React.useEffect(() => {
+    Animated.timing(animation, {
+      toValue: isExpanded ? 1 : 0,
+      duration: 250,
+      easing: Easing.ease,
+      useNativeDriver: false,
+    }).start();
+  }, [isExpanded]);
+
+  const height = animation.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, 70],
+  });
+
+  const opacity = animation;
+
+  return (
+    <View style={styles.faqBox}>
+      <TouchableOpacity onPress={onToggle} style={styles.faqHeader}>
+        <Icon name={item.icon} size={24} color="#0369a1" style={styles.icon} />
+        <Text style={styles.question}>{item.question}</Text>
+        <Icon
+          name={isExpanded ? "chevron-up" : "chevron-down"}
+          size={20}
+          color="#0369a1"
+        />
+      </TouchableOpacity>
+
+      <Animated.View style={[styles.animatedContainer, { height, opacity }]}>
+        <Text style={styles.answer}>{item.answer}</Text>
+      </Animated.View>
+    </View>
+  );
+};
 
 const FAQ = () => {
-  const navigation = useNavigation();
+  const [expandedIndex, setExpandedIndex] = useState(null);
 
-  const handleNavigate = () => {
-    navigation.navigate("Home");
+  const toggleExpand = (index) => {
+    setExpandedIndex(index === expandedIndex ? null : index);
   };
-  
 
   return (
     <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContainer}>
         <Text style={styles.title}>Perguntas Frequentes (FAQ)</Text>
 
-        <View style={styles.faqBox}>
-          <View style={styles.faqHeader}>
-            <Icon
-              name="message-circle"
-              size={24}
-              color="#0369a1"
-              style={styles.icon}
-            />
-            <Text style={styles.question}>
-              Como posso acompanhar o status do meu serviço?
-            </Text>
-          </View>
-          <Text style={styles.answer}>
-            Após contratar um serviço, você pode acompanhar o status em tempo
-            real pelo aplicativo. O profissional enviará atualizações e
-            notificações conforme necessário.
-          </Text>
-        </View>
+        {faqData.map((item, index) => (
+          <FAQItem
+            key={index}
+            item={item}
+            isExpanded={expandedIndex === index}
+            onToggle={() => toggleExpand(index)}
+          />
+        ))}
 
-        <View style={styles.faqBox}>
-          <View style={styles.faqHeader}>
-            <Icon name="phone" size={24} color="#0369a1" style={styles.icon} />
-            <Text style={styles.question}>
-              Como posso entrar em contato com vocês?
-            </Text>
-          </View>
-          <Text style={styles.answer}>
-            Você pode entrar em contato conosco através do nosso aplicativo ou
-            pelo número de telefone disponível na página de contato.
-          </Text>
-        </View>
-
-        <View style={styles.faqBox}>
-          <View style={styles.faqHeader}>
-            <Icon name="users" size={24} color="#0369a1" style={styles.icon} />
-            <Text style={styles.question}>
-              Posso escolher o profissional que fará o serviço?
-            </Text>
-          </View>
-          <Text style={styles.answer}>
-            Sim, você pode visualizar os perfis dos profissionais disponíveis,
-            incluindo suas avaliações e especialidades, para escolher o que mais
-            se adequa às suas necessidades.
-          </Text>
-        </View>
-
-        <View style={styles.faqBox}>
-          <View style={styles.faqHeader}>
-            <Icon name="award" size={24} color="#0369a1" style={styles.icon} />
-            <Text style={styles.question}>
-              Os profissionais são confiáveis?
-            </Text>
-          </View>
-          <Text style={styles.answer}>
-            Todos os profissionais são previamente verificados, possuindo
-            certificações e avaliações de outros clientes, garantindo segurança
-            e qualidade.
-          </Text>
-        </View>
-
-        <View style={styles.contactView}>
-          <Text style={styles.textContact}>Precisa de mais ajuda?</Text>
-          <TouchableOpacity style={styles.buttonContact} >
-            <Text style={styles.buttonText}>Entre em contato</Text>
-          </TouchableOpacity>
-        </View>
       </ScrollView>
     </View>
   );
@@ -124,7 +132,7 @@ const styles = StyleSheet.create({
   faqHeader: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 8,
+    justifyContent: "space-between",
   },
   icon: {
     marginRight: 10,
@@ -134,25 +142,22 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: "#0369a1",
     flex: 1,
+    marginLeft: 10,
+  },
+  animatedContainer: {
+    overflow: "hidden",
+    marginTop: 10,
   },
   answer: {
     fontSize: 14,
     color: "#4b5563",
   },
-  button: {
-    width: "100%",
-    backgroundColor: "#0369A1",
-    padding: 12,
-    borderRadius: 10,
-    alignItems: "center",
-  },
-  textContact:{
-    color: '#0369A1',
-    fontWeight: 'bold',
-    fontSize: 16
+  textContact: {
+    color: "#0369A1",
+    fontWeight: "bold",
+    fontSize: 16,
   },
   contactView: {
-    display: "flex",
     alignItems: "center",
     justifyContent: "center",
     marginTop: 15,
@@ -162,7 +167,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#0369A1",
     padding: 12,
     borderRadius: 10,
-    display: "flex",
     alignItems: "center",
     justifyContent: "center",
     marginTop: 15,
