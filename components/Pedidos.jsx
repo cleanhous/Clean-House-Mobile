@@ -8,6 +8,7 @@ import {
   StyleSheet,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import NavBarHome from "./NavBarHome.jsx";
 import api from "../services/api.js";
 
@@ -20,9 +21,12 @@ const Pedidos = () => {
 
   const fetchContratos = async () => {
     try {
+      const token = await AsyncStorage.getItem("acessToken");
+      if (!token) return;
+
       const response = await api.get("/contratos/cliente", {
         headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
+          Authorization: `Bearer ${token}`,
         },
       });
       setContratos(response.data);
@@ -33,12 +37,15 @@ const Pedidos = () => {
 
   const cancelarPedido = async (contratoId) => {
     try {
+      const token = await AsyncStorage.getItem("acessToken");
+      if (!token) return;
+
       await api.put(
         `/contratos/cancelar/${contratoId}`,
         {},
         {
           headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
+            Authorization: `Bearer ${token}`,
           },
         }
       );
@@ -49,11 +56,6 @@ const Pedidos = () => {
     }
   };
 
-  const handleAvaliarClick = (contrato) => {
-    setSelectedContrato(contrato);
-    setShowModal(true);
-  };
-
   const enviarAvaliacao = async () => {
     try {
       if (estrelas === 0) {
@@ -61,12 +63,15 @@ const Pedidos = () => {
         return;
       }
 
+      const token = await AsyncStorage.getItem("acessToken");
+      if (!token) return;
+
       await api.put(
         `/contratos/avaliar/${selectedContrato.id}`,
         { estrelas },
         {
           headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
+            Authorization: `Bearer ${token}`,
           },
         }
       );
@@ -77,6 +82,11 @@ const Pedidos = () => {
     } catch (error) {
       console.error("Erro ao enviar avaliação:", error);
     }
+  };
+
+  const handleAvaliarClick = (contrato) => {
+    setSelectedContrato(contrato);
+    setShowModal(true);
   };
 
   useEffect(() => {
