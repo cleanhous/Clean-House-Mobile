@@ -9,15 +9,13 @@ import {
   Modal,
   Platform,
   Linking,
+  Alert,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
-import axios from "axios";
-
-const NavBarHome = () => (
-  <View style={styles.navBar}>
-    <Text style={styles.navText}>Home</Text>
-  </View>
-);
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import DateTimePicker from "@react-native-community/datetimepicker";
+import api from "../../services/api";
+import NavBarHome from "../NavBarHome";
 
 const Filtro = ({
   filtroNota,
@@ -64,7 +62,9 @@ const Filtro = ({
       >
         <Text>
           {dataInicial
-            ? dataInicial.toLocaleDateString("pt-BR")
+            ? `Disponível a partir de: ${dataInicial.toLocaleDateString(
+                "pt-BR"
+              )}`
             : "Data Inicial"}
         </Text>
       </TouchableOpacity>
@@ -74,7 +74,7 @@ const Filtro = ({
           mode="date"
           display="default"
           onChange={(event, date) => {
-            setShowStartDate(false);
+            setShowStartDate(Platform.OS === "ios");
             if (date) setDataInicial(date);
           }}
         />
@@ -83,8 +83,10 @@ const Filtro = ({
         onPress={() => setShowEndDate(true)}
         style={styles.dateButton}
       >
-        <Text>
-          {dataFinal ? dataFinal.toLocaleDateString("pt-BR") : "Data Final"}
+        <Text style={!dataInicial ? styles.disabledButtonText : {}}>
+          {dataFinal
+            ? `Disponível até: ${dataFinal.toLocaleDateString("pt-BR")}`
+            : "Data Final"}
         </Text>
       </TouchableOpacity>
       {showEndDate && (
@@ -94,20 +96,20 @@ const Filtro = ({
           display="default"
           minimumDate={dataInicial}
           onChange={(event, date) => {
-            setShowEndDate(false);
+            setShowEndDate(Platform.OS === "ios");
             if (date) setDataFinal(date);
           }}
         />
       )}
+
       <TouchableOpacity style={styles.filterButton} onPress={onFiltrar}>
-        <Text style={styles.buttonText}>Filtrar</Text>
+        <Text style={styles.buttonText}>Filtrar Diaristas</Text>
       </TouchableOpacity>
     </View>
   );
 };
 
 const Diarista = () => {
-
   const [filtroNota, setFiltroNota] = useState("");
   const [precoDe, setPrecoDe] = useState("");
   const [precoAte, setPrecoAte] = useState("");
@@ -116,7 +118,6 @@ const Diarista = () => {
 
   const [diaristas, setDiaristas] = useState([]);
   const [filteredDiaristas, setFilteredDiaristas] = useState([]);
-
   const [showPopup, setShowPopup] = useState(false);
   const [showConfirmationPopup, setShowConfirmationPopup] = useState(false);
   const [selectedDiarista, setSelectedDiarista] = useState(null);
@@ -126,19 +127,20 @@ const Diarista = () => {
   const [prestadorSchedule, setPrestadorSchedule] = useState([]);
   const [showStartPicker, setShowStartPicker] = useState(false);
   const [showEndPicker, setShowEndPicker] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const navigation = useNavigation();
 
   const fetchDiaristas = async () => {
+    setLoading(true);
     try {
-      const response = await fetch(
-        "https://hopeful-youth-production-8fe2.up.railway.app/diarista"
-      );
-      const data = await response.json();
-      setDiaristas(data);
-      setFilteredDiaristas(data);
+      const response = await api.get("/diarista");
+      setDiaristas(response.data);
+      setFilteredDiaristas(response.data);
     } catch (error) {
       console.error("Erro ao buscar diaristas:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -148,56 +150,51 @@ const Diarista = () => {
 
   useEffect(() => {
     if (selectedDiarista) {
-      axios
-        .get(
-          `https:hopeful-youth-production-8fe2.up.railway.app/prestadores/${selectedDiarista.id}/schedule`
-        )
+      api
+        .get(`/prestadores/${selectedDiarista.id}/schedule`)
         .then((response) => {
           setPrestadorSchedule(response.data);
         })
         .catch((error) => {
-          console.error("Erro ao buscar agenda:", error);
+          console.error("Erro ao buscar agenda da diarista:", error);
         });
     }
   }, [selectedDiarista]);
 
   const isDateOccupied = (date) => {
+    const targetDate = new Date(date);
+    targetDate.setHours(0, 0, 0, 0);
+
     return prestadorSchedule.some((item) => {
       const start = new Date(item.data_inicio);
       const end = new Date(item.data_fim);
       start.setHours(0, 0, 0, 0);
-      end.setHours(23, 59, 59, 999);
-      date.setHours(0, 0, 0, 0);
-      return date >= start && date <= end;
+      end.setHours(0, 0, 0, 0);
+      return targetDate >= start && targetDate <= end;
     });
   };
 
   const handleFiltrar = async () => {
+    setLoading(true);
     try {
-      let data = [];
+      let response;
       if (dataInicial && dataFinal) {
-        const queryParams = new URLSearchParams({
-          dataInicio: dataInicial.toISOString(),
-          dataFim: dataFinal.toISOString(),
+        response = await api.get("/prestadores-disponiveis/diarista", {
+          params: {
+            dataInicio: dataInicial.toISOString().split("T")[0],
+            dataFim: dataFinal.toISOString().split("T")[0],
+          },
         });
-        const response = await fetch(
-          `https://hopeful-youth-production-8fe2.up.railway.app/prestadores-disponiveis/diarista?${queryParams}`
-        );
-        data = await response.json();
       } else {
-        const response = await fetch(
-          "https://hopeful-youth-production-8fe2.up.railway.app/diarista"
-        );
-        data = await response.json();
+        response = await api.get("/diarista");
       }
+      const data = response.data;
 
       const filtered = data.filter((diarista) => {
         let matches = true;
         if (filtroNota)
-          matches =
-            matches && parseInt(diarista.nota) === parseInt(filtroNota);
-        if (precoDe)
-          matches = matches && diarista.preco >= parseFloat(precoDe);
+          matches = matches && parseInt(diarista.nota) === parseInt(filtroNota);
+        if (precoDe) matches = matches && diarista.preco >= parseFloat(precoDe);
         if (precoAte)
           matches = matches && diarista.preco <= parseFloat(precoAte);
         return matches;
@@ -206,6 +203,8 @@ const Diarista = () => {
       setFilteredDiaristas(filtered);
     } catch (error) {
       console.error("Erro ao buscar diaristas:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -216,13 +215,42 @@ const Diarista = () => {
 
   const closePopup = () => {
     setShowPopup(false);
-    setSelectedArquiteto(null);
+    setSelectedDiarista(null);
     setSelectedStartDate(null);
     setSelectedEndDate(null);
     setObservacoes("");
+    setShowStartPicker(false);
+    setShowEndPicker(false);
   };
 
   const handleConfirmation = async () => {
+    if (!selectedStartDate || !selectedEndDate) {
+      console.error("Datas de início e fim são obrigatórias.");
+      return;
+    }
+    if (selectedEndDate <= selectedStartDate) {
+      console.error("A data final deve ser posterior à data inicial.");
+      return;
+    }
+
+    let currentDateCheck = new Date(selectedStartDate);
+    while (currentDateCheck <= selectedEndDate) {
+      if (isDateOccupied(currentDateCheck)) {
+        Alert.alert(
+          "Erro",
+          `A data ${currentDateCheck.toLocaleDateString(
+            "pt-BR"
+          )} no intervalo selecionado está ocupada.`
+        );
+        console.warn(
+          `Data ${currentDateCheck.toISOString().split("T")[0]} está ocupada.`
+        );
+        return;
+      }
+      currentDateCheck.setDate(currentDateCheck.getDate() + 1);
+    }
+
+    setLoading(true);
     try {
       const dataInicioFormatted = selectedStartDate
         .toISOString()
@@ -233,54 +261,68 @@ const Diarista = () => {
         .slice(0, 19)
         .replace("T", " ");
 
-      const response = await fetch(
-        "https://backend-production-ce19.up.railway.app/contrato",
+      const token = await AsyncStorage.getItem("acessToken");
+      if (!token) {
+        Alert.alert("Erro", "Você precisa estar logado para contratar.");
+        setLoading(false);
+        return;
+      }
+
+      const response = await api.post(
+        "/contrato",
         {
-          method: "POST",
+          prestadorId: selectedDiarista.id,
+          dataInicio: dataInicioFormatted,
+          dataFim: dataFimFormatted,
+          observacao: observacoes,
+        },
+        {
           headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
+            Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify({
-            prestadorId: selectedDiarista.id,
-            dataInicio: dataInicioFormatted,
-            dataFim: dataFimFormatted,
-            observacao: observacoes,
-          }),
         }
       );
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error("Erro ao confirmar contratação:", errorData);
-      } else {
-        console.log("Contratação confirmada com sucesso");
-        setShowPopup(false);
-        setShowConfirmationPopup(true);
-      }
+      console.log("Contratação confirmada com sucesso", response.data);
+      setShowPopup(false);
+      setShowConfirmationPopup(true);
     } catch (error) {
-      console.error("Erro ao confirmar contratação:", error);
+      console.error(
+        "Erro ao confirmar contratação:",
+        error.response ? error.response.data : error.message
+      );
+      Alert.alert(
+        "Erro na Contratação",
+        error.response?.data?.message ||
+          "Não foi possível confirmar a contratação. Tente novamente."
+      );
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleRedirect = () => {
-    navigation.navigate("Pedidos"); 
+    setShowConfirmationPopup(false);
+    navigation.navigate("Pedidos");
   };
 
   const formatarPreco = (preco) => {
-    return `R$ ${parseFloat(preco).toFixed(2)} por diária`;
+    const numericPrice = parseFloat(preco);
+    if (isNaN(numericPrice)) {
+      return "Preço Indisponível";
+    }
+    return `R$ ${numericPrice.toFixed(2)} por diária`;
   };
 
   return (
     <ScrollView style={styles.container}>
-      <NavBarHome />
+      <NavBarHome title={"Diarista"} />
       <View style={styles.content}>
         <Text style={styles.title}>Serviços de Diarista</Text>
         <Text style={styles.subtitle}>
-          Oferecemos serviços de diaristas de alta qualidade, garantindo
-          segurança e eficiência.
+          Encontre diaristas qualificadas para manter sua casa limpa e
+          organizada.
         </Text>
-
         <Filtro
           filtroNota={filtroNota}
           setFiltroNota={setFiltroNota}
@@ -294,9 +336,11 @@ const Diarista = () => {
           setDataFinal={setDataFinal}
           onFiltrar={handleFiltrar}
         />
-
         <Text style={styles.sectionTitle}>Nossas Diaristas</Text>
-        {filteredDiaristas.length > 0 ? (
+
+        {loading && !showPopup ? (
+          <Text style={styles.noDataText}>Carregando diaristas...</Text>
+        ) : filteredDiaristas.length > 0 ? (
           filteredDiaristas.map((diarista) => (
             <View key={diarista.id} style={styles.card}>
               <View style={styles.cardHeader}>
@@ -308,14 +352,17 @@ const Diarista = () => {
                 {formatarPreco(diarista.preco)}
               </Text>
               <TouchableOpacity
-                onPress={() =>
-                  Linking.openURL(
-                    `https://wa.me/55${diarista.telefone.replace(
-                      /[^\d]/g,
-                      ""
-                    )}`
-                  )
-                }
+                onPress={() => {
+                  const phoneNumber = diarista.telefone?.replace(/[^\d]/g, "");
+                  if (phoneNumber) {
+                    Linking.openURL(`https://wa.me/55${phoneNumber}`);
+                  } else {
+                    Alert.alert(
+                      "Erro",
+                      "Número de telefone inválido ou não fornecido."
+                    );
+                  }
+                }}
                 style={styles.whatsappButton}
               >
                 <Text style={styles.whatsappText}>Contato via WhatsApp</Text>
@@ -324,20 +371,23 @@ const Diarista = () => {
                 style={styles.hireButton}
                 onPress={() => handleCheckAvailability(diarista)}
               >
-                <Text style={styles.buttonText}>
-                  Contratar {diarista.nome}
-                </Text>
+                <Text style={styles.buttonText}>Contratar {diarista.nome}</Text>
               </TouchableOpacity>
             </View>
           ))
         ) : (
           <Text style={styles.noDataText}>
-            Nenhuma diarista disponível no momento.
+            Nenhuma diarista disponível com os filtros selecionados.
           </Text>
         )}
       </View>
 
-      <Modal visible={showPopup} transparent animationType="slide">
+      <Modal
+        visible={showPopup}
+        transparent
+        animationType="slide"
+        onRequestClose={closePopup}
+      >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>
@@ -351,8 +401,14 @@ const Diarista = () => {
             >
               <Text>
                 {selectedStartDate
-                  ? selectedStartDate.toLocaleString("pt-BR")
-                  : "Data Inicial"}
+                  ? selectedStartDate.toLocaleString("pt-BR", {
+                      year: "numeric",
+                      month: "numeric",
+                      day: "numeric",
+                      hour: "numeric",
+                      minute: "numeric",
+                    })
+                  : "Data e Hora Inicial"}
               </Text>
             </TouchableOpacity>
             {showStartPicker && (
@@ -362,32 +418,46 @@ const Diarista = () => {
                 display="default"
                 minimumDate={new Date()}
                 onChange={(event, date) => {
-                  setShowStartPicker(false);
-                  if (date && !isDateOccupied(date)) setSelectedStartDate(date);
+                  const currentDate = date || selectedStartDate;
+                  setShowStartPicker(Platform.OS === "ios");
+                  setSelectedStartDate(currentDate);
+                  if (selectedEndDate && currentDate > selectedEndDate) {
+                    setSelectedEndDate(null);
+                  }
                 }}
               />
             )}
 
             <TouchableOpacity
               onPress={() => setShowEndPicker(true)}
-              style={styles.dateButton}
+              style={[
+                styles.dateButton,
+                !selectedStartDate && styles.disabledButton,
+              ]}
               disabled={!selectedStartDate}
             >
-              <Text>
+              <Text style={selectedStartDate ? {} : styles.disabledButtonText}>
                 {selectedEndDate
-                  ? selectedEndDate.toLocaleString("pt-BR")
-                  : "Data Final"}
+                  ? selectedEndDate.toLocaleString("pt-BR", {
+                      year: "numeric",
+                      month: "numeric",
+                      day: "numeric",
+                      hour: "numeric",
+                      minute: "numeric",
+                    })
+                  : "Data e Hora Final"}
               </Text>
             </TouchableOpacity>
-            {showEndPicker && (
+            {showEndPicker && selectedStartDate && (
               <DateTimePicker
-                value={selectedEndDate || selectedStartDate || new Date()}
+                value={selectedEndDate || selectedStartDate}
                 mode="datetime"
                 display="default"
                 minimumDate={selectedStartDate}
                 onChange={(event, date) => {
-                  setShowEndPicker(false);
-                  if (date) setSelectedEndDate(date);
+                  const currentDate = date || selectedEndDate;
+                  setShowEndPicker(Platform.OS === "ios");
+                  setSelectedEndDate(currentDate);
                 }}
               />
             )}
@@ -408,18 +478,36 @@ const Diarista = () => {
                 <Text>Cancelar</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={styles.confirmButton}
+                style={[
+                  styles.confirmButton,
+                  (!selectedStartDate ||
+                    !selectedEndDate ||
+                    selectedEndDate <= selectedStartDate ||
+                    loading) &&
+                    styles.disabledButton,
+                ]}
                 onPress={handleConfirmation}
-                disabled={!selectedStartDate || !selectedEndDate}
+                disabled={
+                  !selectedStartDate ||
+                  !selectedEndDate ||
+                  selectedEndDate <= selectedStartDate ||
+                  loading
+                }
               >
-                <Text style={styles.buttonText}>Confirmar</Text>
+                <Text style={styles.buttonText}>
+                  {loading ? "Confirmando..." : "Confirmar"}
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
         </View>
       </Modal>
-
-      <Modal visible={showConfirmationPopup} transparent animationType="slide">
+      <Modal
+        visible={showConfirmationPopup}
+        transparent
+        animationType="slide"
+        onRequestClose={handleRedirect}
+      >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Contratação Confirmada!</Text>
@@ -442,8 +530,6 @@ const Diarista = () => {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#075985" },
-  navBar: { padding: 10, backgroundColor: "#0284c7" },
-  navText: { color: "#fff", fontSize: 18 },
   content: { padding: 20 },
   title: {
     fontSize: 24,
@@ -464,8 +550,14 @@ const styles = StyleSheet.create({
     color: "#fff",
     textAlign: "center",
     marginBottom: 15,
+    marginTop: 10,
   },
-  filterContainer: { marginBottom: 20 },
+  filterContainer: {
+    marginBottom: 20,
+    backgroundColor: "rgba(255,255,255,0.1)",
+    padding: 15,
+    borderRadius: 8,
+  },
   input: {
     borderWidth: 1,
     borderColor: "#ccc",
@@ -473,6 +565,7 @@ const styles = StyleSheet.create({
     padding: 10,
     marginBottom: 10,
     backgroundColor: "#fff",
+    color: "#334155",
   },
   dateButton: {
     padding: 10,
@@ -486,6 +579,7 @@ const styles = StyleSheet.create({
     padding: 10,
     borderRadius: 5,
     alignItems: "center",
+    marginTop: 5,
   },
   card: {
     backgroundColor: "#fff",
@@ -498,38 +592,61 @@ const styles = StyleSheet.create({
     shadowRadius: 5,
     elevation: 3,
   },
-  cardHeader: { flexDirection: "row", justifyContent: "space-between" },
+  cardHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 5,
+  },
   cardTitle: { fontSize: 18, fontWeight: "bold", color: "#075985" },
-  cardText: { color: "#4b5563" },
-  cardPrice: { fontWeight: "600", color: "#0284c7" },
-  whatsappButton: { marginTop: 10 },
-  whatsappText: { color: "#22c55e" },
+  cardText: { color: "#4b5563", marginBottom: 5, lineHeight: 20 },
+  cardPrice: {
+    fontWeight: "600",
+    color: "#0284c7",
+    marginTop: 5,
+    fontSize: 15,
+  },
+  whatsappButton: { marginTop: 10, alignSelf: "flex-start" },
+  whatsappText: { color: "#22c55e", fontWeight: "bold" },
   hireButton: {
     backgroundColor: "#0284c7",
     padding: 10,
     borderRadius: 5,
     alignItems: "center",
     marginTop: 10,
+    alignSelf: "flex-end",
   },
   buttonText: { color: "#fff", fontWeight: "600" },
-  noDataText: { color: "#fff", textAlign: "center" },
+  noDataText: {
+    color: "#fff",
+    textAlign: "center",
+    marginTop: 20,
+    fontStyle: "italic",
+  },
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.5)",
     justifyContent: "center",
     alignItems: "center",
+    padding: 20,
   },
   modalContent: {
     backgroundColor: "#fff",
     padding: 20,
     borderRadius: 10,
-    width: "80%",
+    width: "90%",
+    maxWidth: 400,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 5,
   },
   modalTitle: {
     fontSize: 20,
     fontWeight: "bold",
     color: "#075985",
-    marginBottom: 10,
+    marginBottom: 15,
+    textAlign: "center",
   },
   textArea: {
     borderWidth: 1,
@@ -537,19 +654,34 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     padding: 10,
     height: 100,
-    marginBottom: 10,
+    marginBottom: 15,
+    textAlignVertical: "top",
+    backgroundColor: "#f8fafc",
   },
-  modalButtons: { flexDirection: "row", justifyContent: "flex-end" },
+  modalButtons: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 10,
+  },
   cancelButton: {
-    padding: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
     backgroundColor: "#d1d5db",
     borderRadius: 5,
     marginRight: 10,
   },
   confirmButton: {
-    padding: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
     backgroundColor: "#0284c7",
     borderRadius: 5,
+  },
+  disabledButton: {
+    backgroundColor: "#9ca3af",
+    opacity: 0.7,
+  },
+  disabledButtonText: {
+    color: "#6b7280",
   },
 });
 

@@ -5,478 +5,255 @@ import {
   ScrollView,
   TouchableOpacity,
   StyleSheet,
-  TextInput,
-  Modal,
-  Platform,
   Linking,
+  Alert,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import api from "../../services/api"; 
-//import DateTimePicker from "@react-native-community/datetimepicker"; // sem função nessa sprint
+import api from "../../services/api";
+import FiltroPrestadores from "../FiltroPrestadores";
+import CalendarioContratacao from "../CalendarioContratacao";
+import NavBarHome from "../NavBarHome";
 
-const NavBarHome = () => (
-  <View style={[styles.navBar, { paddingTop: 40 }]}>
-    <Text style={styles.navText}>Home</Text>
-  </View>
-);
 
-const Filtro = ({
-  filtroNota,
-  setFiltroNota,
-  precoDe,
-  setPrecoDe,
-  precoAte,
-  setPrecoAte,
-  dataInicial,
-  setDataInicial,
-  dataFinal,
-  setDataFinal,
-  onFiltrar,
-}) => {
-  const [showStartDate, setShowStartDate] = useState(false);
-  const [showEndDate, setShowEndDate] = useState(false);
+export default function Arquiteto() {
+  const [nota, definirNota] = useState("");
+  const [precoMin, definirPrecoMin] = useState("");
+  const [precoMax, definirPrecoMax] = useState("");
+  const [prestadores, definirPrestadores] = useState([]);
+  const [prestadoresFiltrados, definirPrestadoresFiltrados] = useState([]);
+  const [prestadorSelecionado, definirPrestadorSelecionado] = useState(null);
+  const [datasOcupadas, definirDatasOcupadas] = useState({});
+  const [diaSelecionado, definirDiaSelecionado] = useState(null);
+  const [mostrarHorarioInicial, definirMostrarHorarioInicial] = useState(false);
+  const [mostrarHorarioFinal, definirMostrarHorarioFinal] = useState(false);
+  const [horarioInicial, definirHorarioInicial] = useState(null);
+  const [horarioFinal, definirHorarioFinal] = useState(null);
+  const [observacoes, definirObservacoes] = useState("");
+  const [modalCalendarioVisivel, definirModalCalendarioVisivel] = useState(false);
+  const [popupConfirmacao, definirPopupConfirmacao] = useState(false);
+  const navegacao = useNavigation();
 
-  return (
-    <View style={styles.filterContainer}>
-      <TextInput
-        style={styles.input}
-        placeholder="Nota (0-5)"
-        value={filtroNota}
-        onChangeText={setFiltroNota}
-        keyboardType="numeric"
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Preço Mínimo"
-        value={precoDe}
-        onChangeText={setPrecoDe}
-        keyboardType="numeric"
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Preço Máximo"
-        value={precoAte}
-        onChangeText={setPrecoAte}
-        keyboardType="numeric"
-      />
-      <TouchableOpacity
-        onPress={() => setShowStartDate(true)}
-        style={styles.dateButton}
-      >
-        <Text>
-          {dataInicial
-            ? dataInicial.toLocaleDateString("pt-BR")
-            : "Data Inicial"}
-        </Text>
-      </TouchableOpacity>
-      {showStartDate && (
-        <DateTimePicker
-          value={dataInicial || new Date()}
-          mode="date"
-          display="default"
-          onChange={(event, date) => {
-            setShowStartDate(false);
-            if (date) setDataInicial(date);
-          }}
-        />
-      )}
-      <TouchableOpacity
-        onPress={() => setShowEndDate(true)}
-        style={styles.dateButton}
-      >
-        <Text>
-          {dataFinal ? dataFinal.toLocaleDateString("pt-BR") : "Data Final"}
-        </Text>
-      </TouchableOpacity>
-      {showEndDate && (
-        <DateTimePicker
-          value={dataFinal || new Date()}
-          mode="date"
-          display="default"
-          minimumDate={dataInicial}
-          onChange={(event, date) => {
-            setShowEndDate(false);
-            if (date) setDataFinal(date);
-          }}
-        />
-      )}
-      <TouchableOpacity style={styles.filterButton} onPress={onFiltrar}>
-        <Text style={styles.buttonText}>Filtrar</Text>
-      </TouchableOpacity>
-    </View>
-  );
-};
-
-const Arquiteto = () => {
-  const [filtroNota, setFiltroNota] = useState("");
-  const [precoDe, setPrecoDe] = useState("");
-  const [precoAte, setPrecoAte] = useState("");
-  const [dataInicial, setDataInicial] = useState(null);
-  const [dataFinal, setDataFinal] = useState(null);
-
-  const [arquitetos, setArquitetos] = useState([]);
-  const [filteredArquitetos, setFilteredArquitetos] = useState([]);
-
-  const [showPopup, setShowPopup] = useState(false);
-  const [showConfirmationPopup, setShowConfirmationPopup] = useState(false);
-  const [selectedArquiteto, setSelectedArquiteto] = useState(null);
-  const [selectedStartDate, setSelectedStartDate] = useState(null);
-  const [selectedEndDate, setSelectedEndDate] = useState(null);
-  const [observacoes, setObservacoes] = useState("");
-  const [prestadorSchedule, setPrestadorSchedule] = useState([]);
-  const [showStartPicker, setShowStartPicker] = useState(false);
-  const [showEndPicker, setShowEndPicker] = useState(false);
-
-  const navigation = useNavigation();
-
-  const fetchArquitetos = async () => {
+  async function buscarPrestadores() {
     try {
-      const response = await api.get("/arquiteto");
-      setArquitetos(response.data);
-      setFilteredArquitetos(response.data);
-    } catch (error) {
-      console.error("Erro ao buscar arquitetos:", error);
+      const resposta = await api.get("/arquiteto");
+      definirPrestadores(resposta.data);
+      definirPrestadoresFiltrados(resposta.data);
+    } catch (erro) {
+      Alert.alert("Erro", "Não foi possível buscar prestadores.");
     }
-  };
+  }
 
   useEffect(() => {
-    fetchArquitetos();
+    buscarPrestadores();
   }, []);
 
-  useEffect(() => {
-    if (selectedArquiteto) {
-      api
-        .get(`/prestadores/${selectedArquiteto.id}/schedule`)
-        .then((response) => {
-          setPrestadorSchedule(response.data);
-        })
-        .catch((error) => {
-          console.error("Erro ao buscar agenda:", error);
-        });
-    }
-  }, [selectedArquiteto]);
-
-  const isDateOccupied = (date) => {
-    return prestadorSchedule.some((item) => {
-      const start = new Date(item.data_inicio);
-      const end = new Date(item.data_fim);
-      start.setHours(0, 0, 0, 0);
-      end.setHours(23, 59, 59, 999);
-      date.setHours(0, 0, 0, 0);
-      return date >= start && date <= end;
+  function aoFiltrar() {
+    const filtrados = prestadores.filter((item) => {
+      let valido = true;
+      if (nota) valido = valido && parseInt(item.nota, 10) === parseInt(nota, 10);
+      if (precoMin) valido = valido && item.preco >= parseFloat(precoMin);
+      if (precoMax) valido = valido && item.preco <= parseFloat(precoMax);
+      return valido;
     });
-  };
+    definirPrestadoresFiltrados(filtrados);
+  }
 
-  const handleFiltrar = async () => {
+  async function verAgenda(item) {
+    definirPrestadorSelecionado(item);
+    definirDiaSelecionado(null);
+    definirHorarioInicial(null);
+    definirHorarioFinal(null);
+    definirObservacoes("");
     try {
-      let response;
-      if (dataInicial && dataFinal) {
-        response = await api.get("/prestadores-disponiveis/arquiteto", {
-          params: {
-            dataInicio: dataInicial.toISOString(),
-            dataFim: dataFinal.toISOString(),
-          },
-        });
-      } else {
-        response = await api.get("/arquiteto");
-      }
-
-      const data = response.data;
-
-      const filtered = data.filter((arquiteto) => {
-        let matches = true;
-        if (filtroNota)
-          matches =
-            matches && parseInt(arquiteto.nota) === parseInt(filtroNota);
-        if (precoDe)
-          matches = matches && arquiteto.preco >= parseFloat(precoDe);
-        if (precoAte)
-          matches = matches && arquiteto.preco <= parseFloat(precoAte);
-        return matches;
-      });
-
-      setFilteredArquitetos(filtered);
-    } catch (error) {
-      console.error("Erro ao buscar arquitetos:", error);
-    }
-  };
-
-  const handleCheckAvailability = (arquiteto) => {
-    setSelectedArquiteto(arquiteto);
-    setShowPopup(true);
-  };
-
-  const closePopup = () => {
-    setShowPopup(false);
-    setSelectedArquiteto(null);
-    setSelectedStartDate(null);
-    setSelectedEndDate(null);
-    setObservacoes("");
-  };
-
-  const handleConfirmation = async () => {
-    try {
-      const dataInicioFormatted = selectedStartDate
-        .toISOString()
-        .slice(0, 19)
-        .replace("T", " ");
-      const dataFimFormatted = selectedEndDate
-        .toISOString()
-        .slice(0, 19)
-        .replace("T", " ");
-
-      const token = await AsyncStorage.getItem("acessToken"); 
-
-      const response = await api.post(
-        "/contrato",
-        {
-          prestadorId: selectedArquiteto.id,
-          dataInicio: dataInicioFormatted,
-          dataFim: dataFimFormatted,
-          observacao: observacoes,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+      const resposta = await api.get(`/prestadores/${item.id}/schedule`);
+      const agendamento = resposta.data;
+      const marcacoes = {};
+      agendamento.forEach((evento) => {
+        const inicio = new Date(evento.data_inicio);
+        const fim = new Date(evento.data_fim);
+        const atual = new Date(inicio);
+        while (atual <= fim) {
+          const ano = atual.getFullYear();
+          const mes = String(atual.getMonth() + 1).padStart(2, "0");
+          const dia = String(atual.getDate()).padStart(2, "0");
+          const chave = `${ano}-${mes}-${dia}`;
+          marcacoes[chave] = { disabled: true, marked: true, dotColor: "red", disableTouchEvent: true };
+          atual.setDate(atual.getDate() + 1);
         }
-      );
-
-      console.log("Contratação confirmada com sucesso", response.data);
-      setShowPopup(false);
-      setShowConfirmationPopup(true);
-    } catch (error) {
-      console.error(
-        "Erro ao confirmar contratação:",
-        error.response ? error.response.data : error.message
-      );
+      });
+      definirDatasOcupadas(marcacoes);
+      definirModalCalendarioVisivel(true);
+    } catch (erro) {
+      Alert.alert("Erro", "Não foi possível carregar a agenda.");
     }
-  };
+  }
 
-  const handleRedirect = () => {
-    navigation.navigate("Pedidos");
-  };
+  function formatarData(dayString, dataHora) {
+    if (!dayString || !dataHora) return null;
+    const [ano, mes, dia] = dayString.split("-");
+    const hora = String(dataHora.getHours()).padStart(2, "0");
+    const minuto = String(dataHora.getMinutes()).padStart(2, "0");
+    return `${ano}-${mes}-${dia} ${hora}:${minuto}:00`;
+  }
 
-  const formatarPreco = (preco) => {
-    return `R$ ${parseFloat(preco).toFixed(2)} por diária`;
-  };
+  async function confirmarContratacao() {
+    if (!diaSelecionado || !horarioInicial || !horarioFinal) {
+      Alert.alert("Dados incompletos", "Selecione dia e horários.");
+      return;
+    }
+    const dataInicio = formatarData(diaSelecionado, horarioInicial);
+    const dataFim = formatarData(diaSelecionado, horarioFinal);
+    if (!dataInicio || !dataFim) {
+      Alert.alert("Erro", "Não foi possível formatar a data/hora.");
+      return;
+    }
+    try {
+      const token = await AsyncStorage.getItem("acessToken");
+      await api.post(
+        "/contrato",
+        { prestadorId: prestadorSelecionado.id, dataInicio, dataFim, observacao: observacoes },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      definirModalCalendarioVisivel(false);
+      definirPopupConfirmacao(true);
+    } catch (erro) {
+      Alert.alert("Erro", "Falha ao confirmar contratação.");
+    }
+  }
+
+  function redirecionar() {
+    definirPopupConfirmacao(false);
+    navegacao.navigate("Pedidos");
+  }
+
+  function formatarPreco(valor) {
+    return `R$ ${parseFloat(valor).toFixed(2)} por diária`;
+  }
 
   return (
     <ScrollView style={styles.container}>
-      <NavBarHome />
-      <View style={styles.content}>
-        <Text style={styles.title}>Serviços de Arquiteto</Text>
-        <Text style={styles.subtitle}>
-          Oferecemos serviços de arquiteto de alta qualidade, garantindo
-          segurança e eficiência.
-        </Text>
-
-        <Filtro
-          filtroNota={filtroNota}
-          setFiltroNota={setFiltroNota}
-          precoDe={precoDe}
-          setPrecoDe={setPrecoDe}
-          precoAte={precoAte}
-          setPrecoAte={setPrecoAte}
-          dataInicial={dataInicial}
-          setDataInicial={setDataInicial}
-          dataFinal={dataFinal}
-          setDataFinal={setDataFinal}
-          onFiltrar={handleFiltrar}
+      <NavBarHome title={"Arquiteto"} />
+      <View style={styles.conteudo}>
+        <Text style={styles.titulo}>Serviços de Arquiteto</Text>
+        <Text style={styles.subtitulo}>Oferecemos serviços de arquiteto de alta qualidade.</Text>
+        <FiltroPrestadores
+          nota={nota}
+          definirNota={definirNota}
+          precoMin={precoMin}
+          definirPrecoMin={definirPrecoMin}
+          precoMax={precoMax}
+          definirPrecoMax={definirPrecoMax}
+          aoFiltrar={aoFiltrar}
         />
-
-        <Text style={styles.sectionTitle}>Nossos Arquitetos</Text>
-        {filteredArquitetos.length > 0 ? (
-          filteredArquitetos.map((arquiteto) => (
-            <View key={arquiteto.id} style={styles.card}>
+        <Text style={styles.subtitulo2}>Nossos Arquitetos</Text>
+        {prestadoresFiltrados.length > 0 ? (
+          prestadoresFiltrados.map((item) => (
+            <View key={item.id} style={styles.card}>
               <View style={styles.cardHeader}>
-                <Text style={styles.cardTitle}>{arquiteto.nome}</Text>
+                <Text style={styles.cardTitle}>{item.nome}</Text>
               </View>
-              <Text style={styles.cardText}>{arquiteto.titulo}</Text>
-              <Text style={styles.cardText}>{arquiteto.descricao}</Text>
-              <Text style={styles.cardPrice}>
-                {formatarPreco(arquiteto.preco)}
-              </Text>
+              <Text style={styles.cardText}>{item.titulo}</Text>
+              <Text style={styles.cardText}>{item.descricao}</Text>
+              <Text style={styles.cardPrice}>{formatarPreco(item.preco)}</Text>
               <TouchableOpacity
-                onPress={() =>
-                  Linking.openURL(
-                    `https://wa.me/55${arquiteto.telefone.replace(
-                      /[^\d]/g,
-                      ""
-                    )}`
-                  )
-                }
-                style={styles.whatsappButton}
+                onPress={() => Linking.openURL(`https://wa.me/55${item.telefone?.replace(/[^\d]/g, "")}`)}
+                style={{ marginTop: 10 }}
               >
-                <Text style={styles.whatsappText}>Contato via WhatsApp</Text>
+                <Text style={{ color: "#22c55e" }}>Contato via WhatsApp</Text>
               </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.hireButton}
-                onPress={() => handleCheckAvailability(arquiteto)}
-              >
-                <Text style={styles.buttonText}>
-                  Contratar {arquiteto.nome}
-                </Text>
+              <TouchableOpacity style={styles.botaoContratar} onPress={() => verAgenda(item)}>
+                <Text style={styles.textoBotao}>Ver Agenda</Text>
               </TouchableOpacity>
             </View>
           ))
         ) : (
-          <Text style={styles.noDataText}>
-            Nenhum arquiteto disponível no momento.
-          </Text>
+          <Text style={styles.textoNenhum}>Nenhum arquiteto disponível no momento.</Text>
         )}
       </View>
-
-      <Modal visible={showPopup} transparent animationType="slide">
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>
-              Disponibilidade de {selectedArquiteto?.nome}
-            </Text>
-            <Text>Selecione a data e o horário desejado:</Text>
-
-            <TouchableOpacity
-              onPress={() => setShowStartPicker(true)}
-              style={styles.dateButton}
-            >
-              <Text>
-                {selectedStartDate
-                  ? selectedStartDate.toLocaleString("pt-BR")
-                  : "Data Inicial"}
-              </Text>
-            </TouchableOpacity>
-            {showStartPicker && (
-              <DateTimePicker
-                value={selectedStartDate || new Date()}
-                mode="datetime"
-                display="default"
-                minimumDate={new Date()}
-                onChange={(event, date) => {
-                  setShowStartPicker(false);
-                  if (date && !isDateOccupied(date)) setSelectedStartDate(date);
-                }}
-              />
-            )}
-
-            <TouchableOpacity
-              onPress={() => setShowEndPicker(true)}
-              style={styles.dateButton}
-              disabled={!selectedStartDate}
-            >
-              <Text>
-                {selectedEndDate
-                  ? selectedEndDate.toLocaleString("pt-BR")
-                  : "Data Final"}
-              </Text>
-            </TouchableOpacity>
-            {showEndPicker && (
-              <DateTimePicker
-                value={selectedEndDate || selectedStartDate || new Date()}
-                mode="datetime"
-                display="default"
-                minimumDate={selectedStartDate}
-                onChange={(event, date) => {
-                  setShowEndPicker(false);
-                  if (date) setSelectedEndDate(date);
-                }}
-              />
-            )}
-
-            <TextInput
-              style={styles.textArea}
-              value={observacoes}
-              onChangeText={setObservacoes}
-              placeholder="Adicione observações (opcional)"
-              multiline
-            />
-
-            <View style={styles.modalButtons}>
-              <TouchableOpacity
-                style={styles.cancelButton}
-                onPress={closePopup}
-              >
-                <Text>Cancelar</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.confirmButton}
-                onPress={handleConfirmation}
-                disabled={!selectedStartDate || !selectedEndDate}
-              >
-                <Text style={styles.buttonText}>Confirmar</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
-
-      <Modal visible={showConfirmationPopup} transparent animationType="slide">
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Contratação Confirmada!</Text>
-            <Text>
-              A contratação do arquiteto {selectedArquiteto?.nome} foi realizada
-              com sucesso!
-            </Text>
-            <TouchableOpacity
-              style={styles.confirmButton}
-              onPress={handleRedirect}
-            >
-              <Text style={styles.buttonText}>Ver Solicitações</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
+      <CalendarioContratacao
+        visivel={modalCalendarioVisivel}
+        fecharModal={() => definirModalCalendarioVisivel(false)}
+        datasOcupadas={datasOcupadas}
+        diaSelecionado={diaSelecionado}
+        definirDiaSelecionado={definirDiaSelecionado}
+        mostrarHorarioInicial={mostrarHorarioInicial}
+        definirMostrarHorarioInicial={definirMostrarHorarioInicial}
+        mostrarHorarioFinal={mostrarHorarioFinal}
+        definirMostrarHorarioFinal={definirMostrarHorarioFinal}
+        horarioInicial={horarioInicial}
+        definirHorarioInicial={definirHorarioInicial}
+        horarioFinal={horarioFinal}
+        definirHorarioFinal={definirHorarioFinal}
+        observacoes={observacoes}
+        definirObservacoes={definirObservacoes}
+        confirmarContratacao={confirmarContratacao}
+        prestadorSelecionado={prestadorSelecionado}
+        popupConfirmacao={popupConfirmacao}
+        redirecionar={redirecionar}
+      />
     </ScrollView>
   );
-};
+}
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#075985" },
-  navBar: { padding: 10, backgroundColor: "#0284c7" },
-  navText: { color: "#fff", fontSize: 18 },
-  content: { padding: 20 },
-  title: {
+  container: {
+    flex: 1,
+    backgroundColor: "#075985",
+  },
+  navBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#0284c7",
+    paddingTop: 30,
+    paddingBottom: 10,
+    paddingHorizontal: 10,
+    height: 80,
+  },
+  backButton: {
+    width: 48,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  titleContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  navTitle: {
+    color: "#fff",
+    fontSize: 18,
+    fontWeight: "bold",
+  },
+  navText: {
+    color: "#fff",
+    fontSize: 18,
+  },
+  placeholderRight: {
+    width: 48,
+  },
+  conteudo: {
+    padding: 20,
+  },
+  titulo: {
     fontSize: 24,
     fontWeight: "bold",
     color: "#fff",
     textAlign: "center",
     marginBottom: 10,
   },
-  subtitle: {
+  subtitulo: {
     fontSize: 16,
     color: "#fff",
     textAlign: "center",
     marginBottom: 20,
   },
-  sectionTitle: {
+  subtitulo2: {
     fontSize: 20,
     fontWeight: "600",
     color: "#fff",
     textAlign: "center",
     marginBottom: 15,
-  },
-  filterContainer: { marginBottom: 20 },
-  input: {
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 5,
-    padding: 10,
-    marginBottom: 10,
-    backgroundColor: "#fff",
-  },
-  dateButton: {
-    padding: 10,
-    backgroundColor: "#e5e7eb",
-    borderRadius: 5,
-    marginBottom: 10,
-    alignItems: "center",
-  },
-  filterButton: {
-    backgroundColor: "#0284c7",
-    padding: 10,
-    borderRadius: 5,
-    alignItems: "center",
   },
   card: {
     backgroundColor: "#fff",
@@ -489,59 +266,37 @@ const styles = StyleSheet.create({
     shadowRadius: 5,
     elevation: 3,
   },
-  cardHeader: { flexDirection: "row", justifyContent: "space-between" },
-  cardTitle: { fontSize: 18, fontWeight: "bold", color: "#075985" },
-  cardText: { color: "#4b5563" },
-  cardPrice: { fontWeight: "600", color: "#0284c7" },
-  whatsappButton: { marginTop: 10 },
-  whatsappText: { color: "#22c55e" },
-  hireButton: {
+  cardHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  cardTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#075985",
+  },
+  cardText: {
+    color: "#4b5563",
+    marginTop: 3,
+  },
+  cardPrice: {
+    fontWeight: "600",
+    color: "#0284c7",
+    marginTop: 5,
+  },
+  botaoContratar: {
     backgroundColor: "#0284c7",
     padding: 10,
     borderRadius: 5,
     alignItems: "center",
     marginTop: 10,
   },
-  buttonText: { color: "#fff", fontWeight: "600" },
-  noDataText: { color: "#fff", textAlign: "center" },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.5)",
-    justifyContent: "center",
-    alignItems: "center",
+  textoBotao: {
+    color: "#fff",
+    fontWeight: "600",
   },
-  modalContent: {
-    backgroundColor: "#fff",
-    padding: 20,
-    borderRadius: 10,
-    width: "80%",
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-    color: "#075985",
-    marginBottom: 10,
-  },
-  textArea: {
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 5,
-    padding: 10,
-    height: 100,
-    marginBottom: 10,
-  },
-  modalButtons: { flexDirection: "row", justifyContent: "flex-end" },
-  cancelButton: {
-    padding: 10,
-    backgroundColor: "#d1d5db",
-    borderRadius: 5,
-    marginRight: 10,
-  },
-  confirmButton: {
-    padding: 10,
-    backgroundColor: "#0284c7",
-    borderRadius: 5,
+  textoNenhum: {
+    color: "#fff",
+    textAlign: "center",
   },
 });
-
-export default Arquiteto;
