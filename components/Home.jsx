@@ -39,7 +39,7 @@ const Home = () => {
   const navigation = useNavigation();
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: "#f9fafb" }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: "#0a618d" }}>
       <ScrollView contentContainerStyle={styles.container}>
         <View style={styles.header}>
           <Image
@@ -91,14 +91,16 @@ export default Home;
 const styles = StyleSheet.create({
   container: {
     paddingBottom: 30,
+    backgroundColor: "#0a618d",
+
   },
   header: {
     alignItems: "center",
     paddingVertical: 30,
     paddingHorizontal: 20,
     backgroundColor: "#ffffff",
-    borderBottomLeftRadius: 16,
-    borderBottomRightRadius: 16,
+    marginTop: 15,
+    borderRadius: 16,
     elevation: 4,
     shadowColor: "#000",
     shadowOpacity: 0.05,
@@ -115,8 +117,9 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "600",
     textAlign: "center",
-    color: "#334155",
+    color: "#0a618d",
     marginTop: 12,
+    
   },
   promoCard: {
     marginTop: 20,
@@ -134,7 +137,7 @@ const styles = StyleSheet.create({
   promoTitle: {
     fontSize: 20,
     fontWeight: "700",
-    color: "#0284c7",
+    color: "#0a618d",
     marginTop: 12,
     textAlign: "center",
   },
@@ -147,11 +150,15 @@ const styles = StyleSheet.create({
   section: {
     marginTop: 30,
     paddingHorizontal: 20,
+    backgroundColor: "#fff",
+    marginInline: 16,
+    borderRadius: 16,
+    paddingVertical: 20,
   },
   sectionTitle: {
     fontSize: 20,
     fontWeight: "700",
-    color: "#0284c7",
+    color: "#0a618d",
     marginBottom: 16,
     textAlign: "center",
   },
@@ -165,7 +172,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#f1f5f9",
     borderRadius: 12,
     paddingVertical: 20, // Padding superior e inferior mantidos
-    paddingHorizontal: 15, // Padding lateral reduzido
+    paddingHorizontal: 12, 
     alignItems: "center",
     marginBottom: 16,
     elevation: 2,
@@ -176,14 +183,14 @@ const styles = StyleSheet.create({
   cardText: {
     fontSize: 14,
     fontWeight: "500",
-    color: "#0284c7",
+    color: "#0a618d",
     textAlign: "center",
     marginTop: 10,
   },
   footer: {
     textAlign: "center",
     fontSize: 14,
-    color: "#94a3b8",
+    color: "#b0bed2",
     marginTop: 40,
   },
 });
