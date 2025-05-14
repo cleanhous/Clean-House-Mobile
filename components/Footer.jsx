@@ -15,7 +15,7 @@ const Footer = () => {
 
 const styles = StyleSheet.create({
   footerContainer: {
-    paddingVertical: 15,
+    paddingVertical: 10,
     paddingHorizontal: 20,
     backgroundColor: '#0284c7', 
     alignItems: 'center',
@@ -24,7 +24,7 @@ const styles = StyleSheet.create({
     borderTopColor: '#0284c7'
   },
   footerText: {
-    fontSize: 20,
+    fontSize: 14,
     color: '#e5e7eb', 
     textAlign: 'center',
   },

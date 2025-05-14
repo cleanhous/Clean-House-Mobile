@@ -107,6 +107,8 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     marginInline: 15,
+    marginLeft:0,
+    marginRight: 0
 
   },
   scrollContainer: {
@@ -126,7 +128,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   faqBox: {
-    backgroundColor: "#e5e7eb",
+    backgroundColor: "#f1f5f9",
     padding: 15,
     borderRadius: 10,
     marginBottom: 15,

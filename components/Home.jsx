@@ -4,11 +4,10 @@ import {
   View,
   Text,
   StyleSheet,
-  Dimensions,
   TouchableOpacity,
   Image,
+  SafeAreaView,
 } from "react-native";
-
 import {
   PlugZap,
   Droplet,
@@ -23,106 +22,67 @@ import {
 } from "lucide-react-native";
 import { useNavigation } from "@react-navigation/native";
 import FAQ from "./Faq";
-import Footer from "./Footer";
+
+const services = [
+  { name: "Assistência técnica", icon: Settings, screen: "Assistencia" },
+  { name: "Pintor", icon: Paintbrush, screen: "Pintor" },
+  { name: "Chaveiro", icon: KeyRound, screen: "Chaveiro" },
+  { name: "Empreiteiro", icon: LayoutDashboard, screen: "Empreiteiro" },
+  { name: "Arquiteto", icon: BrainCircuit, screen: "Arquiteto" },
+  { name: "Cozinheiro", icon: CookingPot, screen: "Cozinheiro" },
+  { name: "Diarista", icon: User, screen: "Diarista" },
+  { name: "Eletricista", icon: PlugZap, screen: "Eletricista" },
+  { name: "Encanador", icon: Droplet, screen: "Encanador" },
+];
 
 const Home = () => {
   const navigation = useNavigation();
-  const handleClick = () => {
-    navigation.navigate("Login");
-  };
+
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <View style={styles.servicesPreview}>
-        <Image source={require("../assets/logo1.png")} style={styles.imagem} />
-        <Text style={styles.serviceSubtitle}>
-          Praticidade, comodidade e segurança em um só aplicativo
-        </Text>
-      </View>
-
-      <View style={styles.promotionSection}>
-        <Handshake size={80} color="#0284c7" />
-        <Text style={styles.promoTitle}>Precisando de praticidade?</Text>
-        <Text style={styles.promoText}>
-          Estamos aqui para ajudar você a encontrar os melhores profissionais
-          com facilidade e confiança. Conte com a gente!
-        </Text>
-      </View>
-
-      <View style={styles.allServicesSection}>
-        <Text style={styles.allServicesTitle}>Todos os nossos serviços</Text>
-        <View style={styles.servicesGrid}>
-          <TouchableOpacity
-            style={styles.gridItem}
-            onPress={() => navigation.navigate("Assistencia")}
-          >
-            <Text style={styles.gridItemText}>Assistência técnica</Text>
-            <Settings size={20} color="#0284c7" />
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => navigation.navigate("Pintor")}
-            style={styles.gridItem}
-          >
-            <Text style={styles.gridItemText}>Pintor</Text>
-            <Paintbrush size={20} color="#0284c7" />
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => navigation.navigate("Chaveiro")}
-            style={styles.gridItem}
-          >
-            <Text style={styles.gridItemText}>Chaveiro</Text>
-            <KeyRound size={20} color="#0284c7" />
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => navigation.navigate("Empreiteiro")}
-            style={styles.gridItem}
-          >
-            <Text style={styles.gridItemText}>Empreiteiro</Text>
-            <LayoutDashboard size={20} color="#0284c7" />
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => navigation.navigate("Arquiteto")}
-            style={styles.gridItem}
-          >
-            <Text style={styles.gridItemText}>Arquiteto</Text>
-            <BrainCircuit size={20} color="#0284c7" />
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => navigation.navigate("Cozinheiro")}
-            style={styles.gridItem}
-          >
-            <Text style={styles.gridItemText}>Cozinheiro</Text>
-            <CookingPot size={20} color="#0284c7" />
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => navigation.navigate("Diarista")}
-            style={styles.gridItem}
-          >
-            <Text style={styles.gridItemText}>Diarista</Text>
-            <User size={20} color="#0284c7" />
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => navigation.navigate("Eletricista")}
-            style={styles.gridItem}
-          >
-            <Text style={styles.gridItemText}>Eletricista</Text>
-            <PlugZap size={20} color="#0284c7" />
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => navigation.navigate("Encanador")}
-            style={styles.gridItem}
-          >
-            <Text style={styles.gridItemText}>Encanador</Text>
-            <Droplet size={20} color="#0284c7" />
-          </TouchableOpacity>
+    <SafeAreaView style={{ flex: 1, backgroundColor: "#f9fafb" }}>
+      <ScrollView contentContainerStyle={styles.container}>
+        <View style={styles.header}>
+          <Image
+            source={require("../assets/logo1.png")}
+            style={styles.logo}
+          />
+          <Text style={styles.tagline}>
+            Praticidade, comodidade e segurança em um só aplicativo
+          </Text>
         </View>
-      </View>
 
-      <View>
-        <Text style={styles.loginText}>Alguma dúvida?</Text>
-        <FAQ />
-      </View>
-      <Footer />
-    </ScrollView>
+        <View style={[styles.promoCard, styles.fullWidth]}>
+          <Handshake size={70} color="#0284c7" />
+          <Text style={styles.promoTitle}>Precisando de praticidade?</Text>
+          <Text style={styles.promoText}>
+            Estamos aqui para ajudar você a encontrar os melhores profissionais
+            com facilidade e confiança.
+          </Text>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Todos os nossos serviços</Text>
+          <View style={styles.grid}>
+            {services.map(({ name, icon: Icon, screen }) => (
+              <TouchableOpacity
+                key={name}
+                style={styles.card}
+                onPress={() => navigation.navigate(screen)}
+              >
+                <Icon size={32} color="#0284c7" />
+                <Text style={styles.cardText}>{name}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
+        <View style={[styles.section, styles.fullWidth]}>
+          <FAQ />
+        </View>
+
+        <Text style={styles.footer}>© 2025 Clean House - Todos os direitos reservados</Text>
+      </ScrollView>
+    </SafeAreaView>
   );
 };
 
@@ -130,133 +90,100 @@ export default Home;
 
 const styles = StyleSheet.create({
   container: {
-    flexGrow: 1,
-    backgroundColor: "#0284c7",
-    paddingBottom: 20,
-    minHeight: "100%",
+    paddingBottom: 30,
   },
-  imagem: {
-    width: 200,
-    height: 200,
-    alignSelf: "center",
+  header: {
+    alignItems: "center",
+    paddingVertical: 30,
+    paddingHorizontal: 20,
+    backgroundColor: "#ffffff",
+    borderBottomLeftRadius: 16,
+    borderBottomRightRadius: 16,
+    elevation: 4,
+    shadowColor: "#000",
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    marginLeft: 18,
+    marginRight: 18,
+  },
+  logo: {
+    width: 180,
+    height: 180,
     resizeMode: "contain",
   },
-  placeholderText: {
-    color: "#fff",
-    textAlign: "center",
-    fontSize: 16,
-    marginVertical: 8,
-  },
-  headerSection: {
-    marginVertical: 20,
-    paddingHorizontal: 16,
-    alignItems: "center",
-  },
-  servicesPreview: {
-    marginVertical: 30,
-    backgroundColor: "#fff",
-    paddingVertical: 16,
-    marginHorizontal: 16,
-    borderRadius: 8,
-    marginBottom: 20,
-  },
-  serviceSubtitle: {
-    textAlign: "center",
-    fontSize: 20,
-    color: "black",
+  tagline: {
+    fontSize: 18,
     fontWeight: "600",
-    marginBottom: 12,
-    color: "#136391",
-  },
-  servicesRow: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-  },
-  serviceBox: {
-    backgroundColor: "#e5e7eb",
-    padding: 12,
-    borderRadius: 50,
-    alignItems: "center",
-    width: 100,
-  },
-  serviceName: {
-    color: "#0284c7",
-    fontSize: 16,
-    marginBottom: 4,
     textAlign: "center",
+    color: "#334155",
+    marginTop: 12,
   },
-  promotionSection: {
+  promoCard: {
+    marginTop: 20,
     backgroundColor: "#fff",
-    marginHorizontal: 16,
-    padding: 16,
-    borderRadius: 8,
+    borderRadius: 16,
+    padding: 20,
     alignItems: "center",
-    marginBottom: 20,
+    elevation: 3,
+    shadowColor: "#000",
+    shadowOpacity: 0.05,
+    shadowRadius: 5,
+    marginLeft: 18,
+    marginRight: 18,
   },
   promoTitle: {
-    fontSize: 24,
-    fontWeight: "bold",
+    fontSize: 20,
+    fontWeight: "700",
     color: "#0284c7",
     marginTop: 12,
     textAlign: "center",
   },
   promoText: {
+    fontSize: 16,
+    color: "#475569",
     textAlign: "center",
-    marginVertical: 12,
+    marginTop: 10,
+  },
+  section: {
+    marginTop: 30,
+    paddingHorizontal: 20,
+  },
+  sectionTitle: {
     fontSize: 20,
-    marginBottom: 12,
-    color: "#136391",
-    fontWeight: "400",
-  },
-  allServicesSection: {
-    backgroundColor: "#fff",
-    marginHorizontal: 16,
-    paddingVertical: 16,
-    borderRadius: 8,
-    marginBottom: 20,
-  },
-  allServicesTitle: {
-    textAlign: "center",
-    fontSize: 22,
+    fontWeight: "700",
     color: "#0284c7",
-    fontWeight: "600",
-    marginBottom: 12,
+    marginBottom: 16,
+    textAlign: "center",
   },
-  servicesGrid: {
+  grid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    justifyContent: "space-around",
-    paddingHorizontal: 10,
+    justifyContent: "space-between",
   },
-  gridItem: {
-    backgroundColor: "#e5e7eb",
-    width: "30%",
-    height: 100,
-    padding: 12,
-    borderRadius: 8,
-    display: "flex",
-    justifyContent: "center",
+  card: {
+    width: "31%", // Ajustado para 3 colunas
+    backgroundColor: "#f1f5f9",
+    borderRadius: 12,
+    paddingVertical: 20, // Padding superior e inferior mantidos
+    paddingHorizontal: 15, // Padding lateral reduzido
     alignItems: "center",
-    marginVertical: 8,
-    padding: 10,
+    marginBottom: 16,
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
-  gridItemText: {
-    color: "#0284c7",
+  cardText: {
     fontSize: 14,
-    marginBottom: 4,
+    fontWeight: "500",
+    color: "#0284c7",
     textAlign: "center",
+    marginTop: 10,
   },
-  loginText: {
-    color: "#fff",
+  footer: {
     textAlign: "center",
-    fontSize: 20,
-    marginBottom: 10,
-    fontWeight: "bold",
-  },
-  link: {
-    color: "#fff",
-    textDecorationLine: "underline",
-    textAlign: "center",
-    fontSize: 16,
+    fontSize: 14,
+    color: "#94a3b8",
+    marginTop: 40,
   },
 });
