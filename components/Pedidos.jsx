@@ -6,11 +6,13 @@ import {
   ScrollView,
   Modal,
   StyleSheet,
+  Alert,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import NavBarHome from "./NavBarHome.jsx";
 import api from "../services/api.js";
+import ConfettiCannon from "react-native-confetti-cannon";
 
 const Pedidos = () => {
   const navigation = useNavigation();
@@ -18,6 +20,7 @@ const Pedidos = () => {
   const [showModal, setShowModal] = useState(false);
   const [selectedContrato, setSelectedContrato] = useState(null);
   const [estrelas, setEstrelas] = useState(0);
+  const [showConfetti, setShowConfetti] = useState(false);
 
   const fetchContratos = async () => {
     try {
@@ -56,6 +59,17 @@ const Pedidos = () => {
     }
   };
 
+  const handleConfirmCancel = (contrato) => {
+    Alert.alert(
+      "Cancelar pedido",
+      `Tem certeza que deseja cancelar o serviço com ${contrato.nome}?\nInício: ${new Date(contrato.data_inicio).toLocaleString()}\nFim: ${new Date(contrato.data_fim).toLocaleString()}`,
+      [
+        { text: "Não", style: "cancel" },
+        { text: "Sim", onPress: () => cancelarPedido(contrato.id) },
+      ]
+    );
+  };
+
   const enviarAvaliacao = async () => {
     try {
       if (estrelas === 0) {
@@ -78,6 +92,7 @@ const Pedidos = () => {
       console.log("Avaliação enviada com sucesso!");
       setShowModal(false);
       setEstrelas(0);
+      setShowConfetti(true);
       fetchContratos();
     } catch (error) {
       console.error("Erro ao enviar avaliação:", error);
@@ -137,12 +152,14 @@ const Pedidos = () => {
                       <Text style={styles.buttonText}>Avaliar Serviço</Text>
                     </TouchableOpacity>
                   )}
-                  <TouchableOpacity
-                    onPress={() => cancelarPedido(contrato.id)}
-                    style={styles.cancelarButton}
-                  >
-                    <Text style={styles.buttonText}>Cancelar Pedido</Text>
-                  </TouchableOpacity>
+                  {new Date(contrato.data_fim) > new Date() && (
+                    <TouchableOpacity
+                      onPress={() => handleConfirmCancel(contrato)}
+                      style={styles.cancelarButton}
+                    >
+                      <Text style={styles.buttonText}>Cancelar Pedido</Text>
+                    </TouchableOpacity>
+                  )}
                 </>
               )}
             </View>
@@ -184,6 +201,17 @@ const Pedidos = () => {
           </View>
         </View>
       </Modal>
+
+      {showConfetti && (
+        <ConfettiCannon
+          count={100}
+          origin={{ x: -10, y: 0 }}
+          explosionSpeed={350}
+          fallSpeed={2500}
+          fadeOut={true}
+          onAnimationEnd={() => setShowConfetti(false)}
+        />
+      )}
     </View>
   );
 };
@@ -288,6 +316,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#d1d5db",
     borderRadius: 8,
     marginTop: 8,
+    padding: 12,
   },
 });
 
