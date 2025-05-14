@@ -106,14 +106,16 @@ export default FAQ;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    marginInline: 15,
+
   },
   scrollContainer: {
     paddingVertical: 20,
     paddingHorizontal: 16,
     backgroundColor: "#fff",
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    borderRadius: 20,
     flexGrow: 1,
+   
   },
   title: {
     textAlign: "center",

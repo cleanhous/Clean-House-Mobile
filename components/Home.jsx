@@ -58,35 +58,59 @@ const Home = () => {
             <Text style={styles.gridItemText}>Assistência técnica</Text>
             <Settings size={20} color="#0284c7" />
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => navigation.navigate("Pintor")} style={styles.gridItem}>
+          <TouchableOpacity
+            onPress={() => navigation.navigate("Pintor")}
+            style={styles.gridItem}
+          >
             <Text style={styles.gridItemText}>Pintor</Text>
             <Paintbrush size={20} color="#0284c7" />
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => navigation.navigate("Chaveiro")} style={styles.gridItem}>
+          <TouchableOpacity
+            onPress={() => navigation.navigate("Chaveiro")}
+            style={styles.gridItem}
+          >
             <Text style={styles.gridItemText}>Chaveiro</Text>
             <KeyRound size={20} color="#0284c7" />
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => navigation.navigate("Empreiteiro")} style={styles.gridItem}>
+          <TouchableOpacity
+            onPress={() => navigation.navigate("Empreiteiro")}
+            style={styles.gridItem}
+          >
             <Text style={styles.gridItemText}>Empreiteiro</Text>
             <LayoutDashboard size={20} color="#0284c7" />
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => navigation.navigate("Arquiteto")} style={styles.gridItem}>
+          <TouchableOpacity
+            onPress={() => navigation.navigate("Arquiteto")}
+            style={styles.gridItem}
+          >
             <Text style={styles.gridItemText}>Arquiteto</Text>
             <BrainCircuit size={20} color="#0284c7" />
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => navigation.navigate("Cozinheiro")} style={styles.gridItem}>
+          <TouchableOpacity
+            onPress={() => navigation.navigate("Cozinheiro")}
+            style={styles.gridItem}
+          >
             <Text style={styles.gridItemText}>Cozinheiro</Text>
             <CookingPot size={20} color="#0284c7" />
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => navigation.navigate('Diarista')} style={styles.gridItem}>
+          <TouchableOpacity
+            onPress={() => navigation.navigate("Diarista")}
+            style={styles.gridItem}
+          >
             <Text style={styles.gridItemText}>Diarista</Text>
             <User size={20} color="#0284c7" />
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => navigation.navigate("Eletricista")} style={styles.gridItem}>
+          <TouchableOpacity
+            onPress={() => navigation.navigate("Eletricista")}
+            style={styles.gridItem}
+          >
             <Text style={styles.gridItemText}>Eletricista</Text>
             <PlugZap size={20} color="#0284c7" />
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => navigation.navigate("Encanador")} style={styles.gridItem}>
+          <TouchableOpacity
+            onPress={() => navigation.navigate("Encanador")}
+            style={styles.gridItem}
+          >
             <Text style={styles.gridItemText}>Encanador</Text>
             <Droplet size={20} color="#0284c7" />
           </TouchableOpacity>
@@ -97,7 +121,7 @@ const Home = () => {
         <Text style={styles.loginText}>Alguma dúvida?</Text>
         <FAQ />
       </View>
-      <Footer/>
+      <Footer />
     </ScrollView>
   );
 };
@@ -138,11 +162,11 @@ const styles = StyleSheet.create({
   },
   serviceSubtitle: {
     textAlign: "center",
-    color: "#333",
-    fontSize: 22,
+    fontSize: 20,
     color: "black",
-    fontWeight: "bold",
+    fontWeight: "600",
     marginBottom: 12,
+    color: "#136391",
   },
   servicesRow: {
     flexDirection: "row",
@@ -179,10 +203,10 @@ const styles = StyleSheet.create({
   promoText: {
     textAlign: "center",
     marginVertical: 12,
-    color: "#333",
     fontSize: 20,
-    color: "black",
     marginBottom: 12,
+    color: "#136391",
+    fontWeight: "400",
   },
   allServicesSection: {
     backgroundColor: "#fff",
