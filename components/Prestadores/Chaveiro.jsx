@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import {
   View,
@@ -13,18 +12,16 @@ import {
 import { useNavigation } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import api from "../../services/api";
-import FiltroPrestadores from "../FiltroPrestadores"; 
+import FiltroPrestadores from "../FiltroPrestadores";
 import CalendarioContratacao from "../CalendarioContratacao";
 import NavBarHome from "../NavBarHome";
 import { ArrowDown } from "lucide-react-native";
 
-
 const formatarDataParaAPI = (data) => {
   if (!data) return null;
- 
+
   if (!(data instanceof Date)) {
-    console.warn("formatarDataParaAPI: 'data' não é um objeto Date.", data);
-    return null; 
+    return null;
   }
   const ano = data.getFullYear();
   const mes = String(data.getMonth() + 1).padStart(2, "0");
@@ -33,29 +30,31 @@ const formatarDataParaAPI = (data) => {
 };
 
 export default function Chaveiro() {
-
   const [nota, definirNota] = useState("");
   const [precoMin, definirPrecoMin] = useState("");
   const [precoMax, definirPrecoMax] = useState("");
+
   const [dataFiltroInicio, definirDataFiltroInicio] = useState(null);
   const [dataFiltroFim, definirDataFiltroFim] = useState(null);
   const [mostrarSeletorDataInicio, definirMostrarSeletorDataInicio] =
     useState(false);
   const [mostrarSeletorDataFim, definirMostrarSeletorDataFim] = useState(false);
+
   const [prestadores, definirPrestadores] = useState([]);
   const [prestadoresFiltrados, definirPrestadoresFiltrados] = useState([]);
   const [prestadorSelecionado, definirPrestadorSelecionado] = useState(null);
- 
+
+  const [dataInicio, setDataInicio] = useState(null);
+  const [dataFim, setDataFim] = useState(null);
   const [datasOcupadas, definirDatasOcupadas] = useState({});
-  const [diaSelecionado, definirDiaSelecionado] = useState(null);
-  const [mostrarHorarioInicial, definirMostrarHorarioInicial] = useState(false);
-  const [mostrarHorarioFinal, definirMostrarHorarioFinal] = useState(false);
-  const [horarioInicial, definirHorarioInicial] = useState(null);
-  const [horarioFinal, definirHorarioFinal] = useState(null);
-  const [observacoes, definirObservacoes] = useState("");
-  const [modalCalendarioVisivel, definirModalCalendarioVisivel] =
-    useState(false);
-  const [popupConfirmacao, definirPopupConfirmacao] = useState(false);
+
+  const [mostrarHorarioInicial, setMostrarHorarioInicial] = useState(false);
+  const [mostrarHorarioFinal, setMostrarHorarioFinal] = useState(false);
+  const [horarioInicial, setHorarioInicial] = useState(null);
+  const [horarioFinal, setHorarioFinal] = useState(null);
+  const [observacoes, setObservacoes] = useState("");
+  const [modalCalendarioVisivel, setModalCalendarioVisivel] = useState(false);
+  const [popupConfirmacao, setPopupConfirmacao] = useState(false);
 
   const navegacao = useNavigation();
 
@@ -77,19 +76,14 @@ export default function Chaveiro() {
       if (params.toString()) {
         endpoint += `?${params.toString()}`;
       }
-
-      console.log("Buscando prestadores com endpoint:", endpoint);
       const resposta = await api.get(endpoint);
-      definirPrestadores(resposta.data);
-      aplicarFiltrosLocais(resposta.data);
+      const dadosRecebidos = Array.isArray(resposta.data) ? resposta.data : [];
+      definirPrestadores(dadosRecebidos);
+      aplicarFiltrosLocais(dadosRecebidos);
     } catch (erro) {
       Alert.alert(
         "Erro na Busca",
-        "Não foi possível buscar prestadores. Verifique sua conexão ou tente mais tarde."
-      );
-      console.error(
-        "Erro ao buscar prestadores:",
-        erro.response?.data || erro.message || erro
+        "Não foi possível buscar chaveiros. Verifique sua conexão ou tente mais tarde."
       );
       definirPrestadores([]);
       definirPrestadoresFiltrados([]);
@@ -105,87 +99,96 @@ export default function Chaveiro() {
     }
     if (precoMin) {
       filtrados = filtrados.filter(
-        (item) => item.preco >= parseFloat(precoMin)
+        (item) => parseFloat(item.preco) >= parseFloat(precoMin)
       );
     }
     if (precoMax) {
       filtrados = filtrados.filter(
-        (item) => item.preco <= parseFloat(precoMax)
+        (item) => parseFloat(item.preco) <= parseFloat(precoMax)
       );
     }
     definirPrestadoresFiltrados(filtrados);
   }
 
   useEffect(() => {
-    buscarPrestadoresComFiltros(); 
+    buscarPrestadoresComFiltros();
   }, []);
-
 
   function aoAplicarTodosOsFiltrosHandler() {
     buscarPrestadoresComFiltros();
-  
   }
 
-  
-  const lidarComMudancaDataInicio = (evento, dataSelecionada) => {
-    const mostrarPicker = Platform.OS === "ios";
-   
-    definirMostrarSeletorDataInicio(
-      Platform.OS === "ios" ? (evento.type === "set" ? false : true) : false
-    );
-
-    if (evento.type === "set" && dataSelecionada) {
-      // Usuário confirmou uma data
-      definirDataFiltroInicio(dataSelecionada);
-      if (dataFiltroFim && dataSelecionada > dataFiltroFim) {
+  const lidarComMudancaData = (
+    setter,
+    dataSelecionada,
+    tipoEvento,
+    pickerSetter
+  ) => {
+    pickerSetter(Platform.OS === "ios" ? tipoEvento !== "set" : false);
+    if (tipoEvento === "set" && dataSelecionada) {
+      setter(dataSelecionada);
+      if (
+        setter === definirDataFiltroInicio &&
+        dataFiltroFim &&
+        dataSelecionada > dataFiltroFim
+      ) {
         definirDataFiltroFim(null);
         Alert.alert(
           "Atenção",
           "A data final foi redefinida pois era anterior à nova data de início."
         );
       }
-    } else if (evento.type === "dismissed") {
-     
-      definirMostrarSeletorDataInicio(false); 
-    }
-  };
-
-  const lidarComMudancaDataFim = (evento, dataSelecionada) => {
-    const mostrarPicker = Platform.OS === "ios";
-    definirMostrarSeletorDataFim(
-      Platform.OS === "ios" ? (evento.type === "set" ? false : true) : false
-    );
-
-    if (evento.type === "set" && dataSelecionada) {
-      if (dataFiltroInicio && dataSelecionada < dataFiltroInicio) {
+      if (
+        setter === definirDataFiltroFim &&
+        dataFiltroInicio &&
+        dataSelecionada < dataFiltroInicio
+      ) {
         Alert.alert(
           "Data Inválida",
           "A data final não pode ser anterior à data de início."
         );
-       
-        return;
+        setter(null);
       }
-      definirDataFiltroFim(dataSelecionada);
-    } else if (evento.type === "dismissed") {
-      definirMostrarSeletorDataFim(false);
+    } else if (tipoEvento === "dismissed") {
+      pickerSetter(false);
     }
+  };
+
+  const lidarComMudancaDataInicio = (evento, dataSelecionada) => {
+    lidarComMudancaData(
+      definirDataFiltroInicio,
+      dataSelecionada,
+      evento.type,
+      definirMostrarSeletorDataInicio
+    );
+  };
+
+  const lidarComMudancaDataFim = (evento, dataSelecionada) => {
+    lidarComMudancaData(
+      definirDataFiltroFim,
+      dataSelecionada,
+      evento.type,
+      definirMostrarSeletorDataFim
+    );
   };
 
   async function verAgenda(item) {
     definirPrestadorSelecionado(item);
-    definirDiaSelecionado(null);
-    definirHorarioInicial(null);
-    definirHorarioFinal(null);
-    definirObservacoes("");
+    setDataInicio(null);
+    setDataFim(null);
+    setHorarioInicial(null);
+    setHorarioFinal(null);
+    setObservacoes("");
+
     try {
-      const resposta = await api.get(`/prestadores/${item.id}/schedule`);
-      const agendamento = Array.isArray(resposta.data) ? resposta.data : [];
+      const { data } = await api.get(`/prestadores/${item.id}/schedule`);
       const marcacoes = {};
-      agendamento.forEach((evento) => {
+
+      (Array.isArray(data) ? data : []).forEach((evento) => {
         if (evento.data_inicio && evento.data_fim) {
           const inicio = new Date(evento.data_inicio);
           const fim = new Date(evento.data_fim);
-          let atual = new Date(inicio.valueOf()); 
+          let atual = new Date(inicio.valueOf());
           while (atual <= fim) {
             const ano = atual.getFullYear();
             const mes = String(atual.getMonth() + 1).padStart(2, "0");
@@ -202,7 +205,7 @@ export default function Chaveiro() {
         }
       });
       definirDatasOcupadas(marcacoes);
-      definirModalCalendarioVisivel(true);
+      setModalCalendarioVisivel(true);
     } catch (erro) {
       Alert.alert(
         "Erro na Agenda",
@@ -215,32 +218,27 @@ export default function Chaveiro() {
     }
   }
 
-  function formatarDataParaContrato(dayString, dataHora) {
-    if (!dayString || !dataHora || !(dataHora instanceof Date)) return null;
-    const [ano, mes, dia] = dayString.split("-");
-    const hora = String(dataHora.getHours()).padStart(2, "0");
-    const minuto = String(dataHora.getMinutes()).padStart(2, "0");
-    return `${ano}-${mes}-${dia} ${hora}:${minuto}:00`;
+  function formatarData(diaISO, hora) {
+    if (!diaISO || !hora || !(hora instanceof Date)) return null;
+    const [ano, mes, dia] = diaISO.split("-");
+    const hh = String(hora.getHours()).padStart(2, "0");
+    const mm = String(hora.getMinutes()).padStart(2, "0");
+    return `${ano}-${mes}-${dia} ${hh}:${mm}:00`;
   }
 
   async function confirmarContratacao() {
-    if (!diaSelecionado || !horarioInicial || !horarioFinal) {
-      Alert.alert(
-        "Dados Incompletos",
-        "Selecione o dia e os horários de início e fim."
-      );
+    if (!dataInicio || !horarioInicial || !dataFim || !horarioFinal) {
+      Alert.alert("Dados incompletos", "Selecione período e horários.");
       return;
     }
-    const dataInicioContrato = formatarDataParaContrato(
-      diaSelecionado,
+
+    const inicioSQL = formatarData(
+      dataInicio.dateString || dataInicio,
       horarioInicial
     );
-    const dataFimContrato = formatarDataParaContrato(
-      diaSelecionado,
-      horarioFinal
-    );
+    const fimSQL = formatarData(dataFim.dateString || dataFim, horarioFinal);
 
-    if (!dataInicioContrato || !dataFimContrato) {
+    if (!inicioSQL || !fimSQL) {
       Alert.alert(
         "Erro de Formatação",
         "Data/hora inválida para a contratação."
@@ -258,14 +256,14 @@ export default function Chaveiro() {
         "/contrato",
         {
           prestadorId: prestadorSelecionado.id,
-          dataInicio: dataInicioContrato,
-          dataFim: dataFimContrato,
+          dataInicio: inicioSQL,
+          dataFim: fimSQL,
           observacao: observacoes,
         },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      definirModalCalendarioVisivel(false);
-      definirPopupConfirmacao(true);
+      setModalCalendarioVisivel(false);
+      setPopupConfirmacao(true);
     } catch (erro) {
       Alert.alert(
         "Erro na Contratação",
@@ -278,9 +276,23 @@ export default function Chaveiro() {
     }
   }
 
-  function redirecionarAposContratacao() {
-    definirPopupConfirmacao(false);
-    navegacao.navigate("Pedidos");
+  function redirecionar() {
+    try {
+      setPopupConfirmacao(false);
+      if (navegacao && typeof navegacao.navigate === "function") {
+        navegacao.navigate("Pedidos");
+      } else {
+        Alert.alert(
+          "Erro de Navegação",
+          "Controlador de navegação indisponível."
+        );
+      }
+    } catch (error) {
+      Alert.alert(
+        "Erro de Navegação",
+        `Não foi possível acessar Pedidos: ${error.message}`
+      );
+    }
   }
 
   function formatarPreco(valor) {
@@ -301,28 +313,26 @@ export default function Chaveiro() {
           Encontre os melhores chaveiros para suas necessidades.
         </Text>
 
-        
-          <FiltroPrestadores
-            nota={nota}
-            definirNota={definirNota}
-            precoMin={precoMin}
-            definirPrecoMin={definirPrecoMin}
-            precoMax={precoMax}
-            definirPrecoMax={definirPrecoMax}
-            valorDataFiltroInicio={dataFiltroInicio}
-            valorDataFiltroFim={dataFiltroFim}
-            mostrarSeletorDataInicio={mostrarSeletorDataInicio}
-            definirMostrarSeletorDataInicio={definirMostrarSeletorDataInicio}
-            mostrarSeletorDataFim={mostrarSeletorDataFim}
-            definirMostrarSeletorDataFim={definirMostrarSeletorDataFim}
-            aoMudarDataInicioFiltro={lidarComMudancaDataInicio}
-            aoMudarDataFimFiltro={lidarComMudancaDataFim}
-            aoAplicarTodosOsFiltros={aoAplicarTodosOsFiltrosHandler}
-          />
-          
-        
+        <FiltroPrestadores
+          nota={nota}
+          definirNota={definirNota}
+          precoMin={precoMin}
+          definirPrecoMin={definirPrecoMin}
+          precoMax={precoMax}
+          definirPrecoMax={definirPrecoMax}
+          valorDataFiltroInicio={dataFiltroInicio}
+          valorDataFiltroFim={dataFiltroFim}
+          mostrarSeletorDataInicio={mostrarSeletorDataInicio}
+          definirMostrarSeletorDataInicio={definirMostrarSeletorDataInicio}
+          mostrarSeletorDataFim={mostrarSeletorDataFim}
+          definirMostrarSeletorDataFim={definirMostrarSeletorDataFim}
+          aoMudarDataInicioFiltro={lidarComMudancaDataInicio}
+          aoMudarDataFimFiltro={lidarComMudancaDataFim}
+          aoAplicarTodosOsFiltros={aoAplicarTodosOsFiltrosHandler}
+        />
 
         <Text style={estilos.subtitulo2}>Nossos Chaveiros</Text>
+
         {prestadoresFiltrados.length > 0 ? (
           prestadoresFiltrados.map((item) => (
             <View key={item.id || item.nome} style={estilos.card}>
@@ -338,17 +348,31 @@ export default function Chaveiro() {
                 {item.descricao || "Descrição não disponível"}
               </Text>
               <Text style={estilos.cardPrice}>{formatarPreco(item.preco)}</Text>
+              <View style={estilos.ratingContainer}>
+                {Array.from({ length: 5 }).map((_, index) => (
+                  <Text
+                    key={index}
+                    style={[
+                      estilos.star,
+                      index < Math.floor(parseFloat(item.nota) || 0)
+                        ? estilos.starFilled
+                        : estilos.starEmpty,
+                    ]}
+                  >
+                    ★
+                  </Text>
+                ))}
+                <Text style={estilos.ratingText}>({item.nota || "N/A"})</Text>
+              </View>
               <TouchableOpacity
                 onPress={() => {
-                  const telefoneLimpo = item.telefone?.replace(/[^\d]/g, "");
-                  if (telefoneLimpo) {
-                    Linking.openURL(`https://wa.me/55${telefoneLimpo}`);
-                  } else {
+                  const tel = item.telefone?.replace(/[^\d]/g, "");
+                  if (tel) Linking.openURL(`https://wa.me/55${tel}`);
+                  else
                     Alert.alert(
                       "Contato Indisponível",
-                      "O número de WhatsApp não foi fornecido."
+                      "WhatsApp não fornecido."
                     );
-                  }
                 }}
                 style={estilos.botaoWhatsapp}
               >
@@ -366,8 +390,7 @@ export default function Chaveiro() {
           ))
         ) : (
           <Text style={estilos.textoNenhum}>
-            Nenhum chaveiro encontrado com os filtros aplicados. Tente outros
-            critérios.
+            Nenhum chaveiro encontrado com os filtros aplicados.
           </Text>
         )}
       </View>
@@ -375,25 +398,27 @@ export default function Chaveiro() {
       {prestadorSelecionado && (
         <CalendarioContratacao
           visivel={modalCalendarioVisivel}
-          fecharModal={() => definirModalCalendarioVisivel(false)}
+          fecharModal={() => setModalCalendarioVisivel(false)}
           datasOcupadas={datasOcupadas}
-          diaSelecionado={diaSelecionado}
-          definirDiaSelecionado={definirDiaSelecionado}
+          dataInicio={dataInicio}
+          definirDataInicio={setDataInicio}
+          dataFim={dataFim}
+          definirDataFim={setDataFim}
           mostrarHorarioInicial={mostrarHorarioInicial}
-          definirMostrarHorarioInicial={definirMostrarHorarioInicial}
+          definirMostrarHorarioInicial={setMostrarHorarioInicial}
           mostrarHorarioFinal={mostrarHorarioFinal}
-          definirMostrarHorarioFinal={definirMostrarHorarioFinal}
+          definirMostrarHorarioFinal={setMostrarHorarioFinal}
           horarioInicial={horarioInicial}
-          definirHorarioInicial={definirHorarioInicial}
+          definirHorarioInicial={setHorarioInicial}
           horarioFinal={horarioFinal}
-          definirHorarioFinal={definirHorarioFinal}
+          definirHorarioFinal={setHorarioFinal}
           observacoes={observacoes}
-          definirObservacoes={definirObservacoes}
+          definirObservacoes={setObservacoes}
           confirmarContratacao={confirmarContratacao}
           prestadorSelecionado={prestadorSelecionado}
           popupConfirmacao={popupConfirmacao}
-          definirPopupConfirmacao={definirPopupConfirmacao}
-          redirecionarAposContratacao={redirecionarAposContratacao}
+          definirPopupConfirmacao={setPopupConfirmacao}
+          redirecionar={redirecionar}
         />
       )}
     </ScrollView>
@@ -401,17 +426,9 @@ export default function Chaveiro() {
 }
 
 const estilos = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#075985",
-  },
-  scrollContentContainer: {
-    paddingBottom: 30,
-  },
-  conteudo: {
-    paddingHorizontal: 20,
-    paddingTop: 10,
-  },
+  container: { flex: 1, backgroundColor: "#075985" },
+  scrollContentContainer: { paddingBottom: 30 },
+  conteudo: { paddingHorizontal: 20, paddingTop: 10 },
   titulo: {
     fontSize: 26,
     fontWeight: "bold",
@@ -450,17 +467,8 @@ const estilos = StyleSheet.create({
     alignItems: "center",
     marginBottom: 8,
   },
-  cardTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-    color: "#075985",
-  },
-  cardText: {
-    fontSize: 15,
-    color: "#475569",
-    lineHeight: 22,
-    marginBottom: 5,
-  },
+  cardTitle: { fontSize: 20, fontWeight: "bold", color: "#075985" },
+  cardText: { fontSize: 15, color: "#475569", lineHeight: 22, marginBottom: 5 },
   cardPrice: {
     fontSize: 17,
     fontWeight: "700",
@@ -469,7 +477,7 @@ const estilos = StyleSheet.create({
     marginBottom: 12,
   },
   botaoWhatsapp: {
-    backgroundColor: "#25D366", 
+    backgroundColor: "#25D366",
     paddingVertical: 10,
     paddingHorizontal: 15,
     borderRadius: 8,
@@ -482,7 +490,7 @@ const estilos = StyleSheet.create({
     color: "#fff",
     fontWeight: "600",
     fontSize: 15,
-    marginLeft: 8, 
+    marginLeft: 8,
   },
   botaoContratar: {
     backgroundColor: "#0284c7",
@@ -492,15 +500,21 @@ const estilos = StyleSheet.create({
     alignItems: "center",
     marginTop: 12,
   },
-  textoBotao: {
-    color: "#fff",
-    fontWeight: "600",
-    fontSize: 16,
-  },
+  textoBotao: { color: "#fff", fontWeight: "600", fontSize: 16 },
   textoNenhum: {
     color: "#bae6fd",
     textAlign: "center",
     fontSize: 16,
     paddingVertical: 20,
   },
+  ratingContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 8,
+    marginBottom: 8,
+  },
+  star: { fontSize: 18, marginRight: 3 },
+  starFilled: { color: "#FBBF24" },
+  starEmpty: { color: "#D1D5DB" },
+  ratingText: { marginLeft: 6, color: "#4B5563", fontSize: 14 },
 });
