@@ -153,7 +153,7 @@ export default function Encanador() {
 
   return (
     <ScrollView style={estilos.container}>
-      <NavBarHome title={"Encanador"}/>
+      <NavBarHome title={"Encanador"} />
       <View style={estilos.conteudo}>
         <Text style={estilos.titulo}>Serviços de Encanador</Text>
         <Text style={estilos.subtitulo}>
@@ -181,7 +181,22 @@ export default function Encanador() {
               <Text style={estilos.cardText}>{p.titulo}</Text>
               <Text style={estilos.cardText}>{p.descricao}</Text>
               <Text style={estilos.cardPrice}>{valorFormatado(p.preco)}</Text>
-
+              <View style={estilos.ratingContainer}>
+                {Array.from({ length: 5 }).map((_, index) => (
+                  <Text
+                    key={index}
+                    style={[
+                      estilos.star,
+                      index < Math.floor(p.nota)
+                        ? estilos.starFilled
+                        : estilos.starEmpty,
+                    ]}
+                  >
+                    ★
+                  </Text>
+                ))}
+                <Text style={estilos.ratingText}>({p.nota})</Text>
+              </View>
               <TouchableOpacity
                 onPress={() =>
                   Linking.openURL(
@@ -236,6 +251,26 @@ export default function Encanador() {
 }
 
 const estilos = StyleSheet.create({
+  ratingContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 8,
+  },
+  star: {
+    fontSize: 16,
+    marginRight: 2,
+  },
+  starFilled: {
+    color: "#FBBF24", 
+  },
+  starEmpty: {
+    color: "#D1D5DB", 
+  },
+  ratingText: {
+    marginLeft: 4,
+    color: "#4B5563",
+    fontSize: 14,
+  },
   container: {
     flex: 1,
     backgroundColor: "#075985",
