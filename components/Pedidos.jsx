@@ -220,6 +220,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#0ea5e9",
+    
   },
   scrollView: {
     padding: 16,
@@ -235,7 +236,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     padding: 16,
     borderRadius: 8,
-    marginBottom: 16,
+    marginBottom: 20,
   },
   contratoNome: {
     fontSize: 18,

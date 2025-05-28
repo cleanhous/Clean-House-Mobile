@@ -12,7 +12,7 @@ const NavBarHome = ({ title }) => {
         onPress={() => navigation.goBack()}
         style={styles.backButton}
       >
-        <Icon name="arrow-back" size={28} color="#fff" />
+        <Icon name="arrow-back" size={20} color="#fff" />
       </TouchableOpacity>
       <View style={styles.titleContainer}>
         <Text style={styles.navTitle}>{title}</Text>
@@ -25,13 +25,17 @@ const NavBarHome = ({ title }) => {
 
 const styles = StyleSheet.create({
   navBar: {
+    display:'flex',
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent:"center",
     backgroundColor: '#0284c7',
-    paddingTop: Platform.OS === 'ios' ? 40 : 20,
+    paddingTop: Platform.OS === 'ios' ? 40 : 15,
     paddingBottom: 10,
-    paddingHorizontal: 10,
-    height: Platform.OS === 'ios' ? 90 : 70, 
+    paddingHorizontal: 25,
+    height: Platform.OS === 'ios' ? 90 : 80, 
+    paddingTop:30,
+    
   },
   backButton: {
     padding: 10,
@@ -45,9 +49,10 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 18,
     fontWeight: 'bold',
+    textAlign:"center"
   },
   placeholderRight: {
-    width: 48, 
+    width: 42, 
   },
 });
 

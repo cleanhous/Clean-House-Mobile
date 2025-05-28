@@ -5,7 +5,7 @@ import {
   ScrollView,
   TouchableOpacity,
   StyleSheet,
-  TextInput,
+  TextInput, // Mantido para o TextInput de observações no modal
   Modal,
   Platform,
   Linking,
@@ -16,156 +16,216 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import api from "../../services/api";
 import NavBarHome from "../NavBarHome";
+import FiltroPrestadores from "../FiltroPrestadores"; // IMPORTANDO O SEU COMPONENTE DE FILTRO
 
-const Filtro = ({
-  filtroNota,
-  setFiltroNota,
-  precoDe,
-  setPrecoDe,
-  precoAte,
-  setPrecoAte,
-  dataInicial,
-  setDataInicial,
-  dataFinal,
-  setDataFinal,
-  onFiltrar,
-}) => {
-  const [showStartDate, setShowStartDate] = useState(false);
-  const [showEndDate, setShowEndDate] = useState(false);
-
-  return (
-    <View style={styles.filterContainer}>
-      <TextInput
-        style={styles.input}
-        placeholder="Nota (0-5)"
-        value={filtroNota}
-        onChangeText={setFiltroNota}
-        keyboardType="numeric"
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Preço Mínimo"
-        value={precoDe}
-        onChangeText={setPrecoDe}
-        keyboardType="numeric"
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Preço Máximo"
-        value={precoAte}
-        onChangeText={setPrecoAte}
-        keyboardType="numeric"
-      />
-      <TouchableOpacity
-        onPress={() => setShowStartDate(true)}
-        style={styles.dateButton}
-      >
-        <Text>
-          {dataInicial
-            ? `Disponível a partir de: ${dataInicial.toLocaleDateString(
-                "pt-BR"
-              )}`
-            : "Data Inicial"}
-        </Text>
-      </TouchableOpacity>
-      {showStartDate && (
-        <DateTimePicker
-          value={dataInicial || new Date()}
-          mode="date"
-          display="default"
-          onChange={(event, date) => {
-            setShowStartDate(Platform.OS === "ios");
-            if (date) setDataInicial(date);
-          }}
-        />
-      )}
-      <TouchableOpacity
-        onPress={() => setShowEndDate(true)}
-        style={styles.dateButton}
-      >
-        <Text style={!dataInicial ? styles.disabledButtonText : {}}>
-          {dataFinal
-            ? `Disponível até: ${dataFinal.toLocaleDateString("pt-BR")}`
-            : "Data Final"}
-        </Text>
-      </TouchableOpacity>
-      {showEndDate && (
-        <DateTimePicker
-          value={dataFinal || new Date()}
-          mode="date"
-          display="default"
-          minimumDate={dataInicial}
-          onChange={(event, date) => {
-            setShowEndDate(Platform.OS === "ios");
-            if (date) setDataFinal(date);
-          }}
-        />
-      )}
-
-      <TouchableOpacity style={styles.filterButton} onPress={onFiltrar}>
-        <Text style={styles.buttonText}>Filtrar Diaristas</Text>
-      </TouchableOpacity>
-    </View>
-  );
+// Função auxiliar para formatar data para API (YYYY-MM-DD) - para filtros
+// Esta função é usada internamente pelo FiltroPrestadores também, mas é bom ter aqui
+// para a lógica de busca de prestadores.
+const formatarDataParaAPIFiltro = (data) => {
+  if (!data || !(data instanceof Date)) return null;
+  const ano = data.getFullYear();
+  const mes = String(data.getMonth() + 1).padStart(2, "0");
+  const dia = String(data.getDate()).padStart(2, "0");
+  return `${ano}-${mes}-${dia}`;
 };
 
-const Diarista = () => {
-  const [filtroNota, setFiltroNota] = useState("");
-  const [precoDe, setPrecoDe] = useState("");
-  const [precoAte, setPrecoAte] = useState("");
-  const [dataInicial, setDataInicial] = useState(null);
-  const [dataFinal, setDataFinal] = useState(null);
+export default function Diarista() {
+  // Estados de Filtro
+  const [nota, definirNota] = useState("");
+  const [precoMin, definirPrecoMin] = useState("");
+  const [precoMax, definirPrecoMax] = useState("");
+  const [dataFiltroInicio, definirDataFiltroInicio] = useState(null);
+  const [dataFiltroFim, definirDataFiltroFim] = useState(null);
+  const [mostrarSeletorDataInicio, definirMostrarSeletorDataInicio] =
+    useState(false);
+  const [mostrarSeletorDataFim, definirMostrarSeletorDataFim] = useState(false);
 
-  const [diaristas, setDiaristas] = useState([]);
-  const [filteredDiaristas, setFilteredDiaristas] = useState([]);
-  const [showPopup, setShowPopup] = useState(false);
-  const [showConfirmationPopup, setShowConfirmationPopup] = useState(false);
-  const [selectedDiarista, setSelectedDiarista] = useState(null);
-  const [selectedStartDate, setSelectedStartDate] = useState(null);
-  const [selectedEndDate, setSelectedEndDate] = useState(null);
-  const [observacoes, setObservacoes] = useState("");
-  const [prestadorSchedule, setPrestadorSchedule] = useState([]);
-  const [showStartPicker, setShowStartPicker] = useState(false);
-  const [showEndPicker, setShowEndPicker] = useState(false);
+  // Estados de Dados dos Prestadores
+  const [prestadores, definirPrestadores] = useState([]);
+  const [prestadoresFiltrados, definirPrestadoresFiltrados] = useState([]);
+  const [prestadorSelecionado, definirPrestadorSelecionado] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  const navigation = useNavigation();
+  // Estados do Modal de Contratação
+  const [modalCalendarioVisivel, setModalCalendarioVisivel] = useState(false);
+  const [dataInicioContratacao, setDataInicioContratacao] = useState(null);
+  const [dataFimContratacao, setDataFimContratacao] = useState(null);
+  const [datasOcupadas, definirDatasOcupadas] = useState([]);
+  const [observacoes, setObservacoes] = useState("");
+  const [popupConfirmacao, setPopupConfirmacao] = useState(false);
 
-  const fetchDiaristas = async () => {
+  const [mostrarPickerInicioContratacao, setMostrarPickerInicioContratacao] =
+    useState(false);
+  const [mostrarPickerFimContratacao, setMostrarPickerFimContratacao] =
+    useState(false);
+
+  const navegacao = useNavigation();
+
+  async function buscarPrestadoresComFiltros() {
     setLoading(true);
     try {
-      const response = await api.get("/diarista");
-      setDiaristas(response.data);
-      setFilteredDiaristas(response.data);
-    } catch (error) {
-      console.error("Erro ao buscar diaristas:", error);
+      let endpoint = "/diarista";
+      const params = new URLSearchParams();
+      const dataInicioFormatada = formatarDataParaAPIFiltro(dataFiltroInicio);
+      const dataFimFormatada = formatarDataParaAPIFiltro(dataFiltroFim);
+
+      // Adapte esta lógica se a API de diaristas tiver parâmetros diferentes
+      // para disponibilidade ou se não suportar filtro por data na listagem.
+      if (dataInicioFormatada) {
+        params.append("disponivel_de", dataInicioFormatada);
+      }
+      if (dataFimFormatada) {
+        params.append("disponivel_ate", dataFimFormatada);
+      }
+
+      if (params.toString()) {
+        endpoint += `?${params.toString()}`;
+      }
+
+      const resposta = await api.get(endpoint);
+      const dadosRecebidos = Array.isArray(resposta.data) ? resposta.data : [];
+      definirPrestadores(dadosRecebidos);
+      aplicarFiltrosLocais(dadosRecebidos);
+    } catch (erro) {
+      Alert.alert("Erro na Busca", "Não foi possível buscar diaristas.");
+      console.error(
+        "Erro ao buscar diaristas:",
+        erro.response?.data || erro.message || erro
+      );
+      definirPrestadores([]);
+      definirPrestadoresFiltrados([]);
     } finally {
       setLoading(false);
     }
-  };
+  }
+
+  function aplicarFiltrosLocais(listaBase) {
+    let filtrados = [...listaBase];
+    if (nota && !isNaN(parseInt(nota))) {
+      filtrados = filtrados.filter(
+        (item) => parseInt(item.nota, 10) === parseInt(nota, 10)
+      );
+    }
+    if (precoMin && !isNaN(parseFloat(precoMin))) {
+      filtrados = filtrados.filter(
+        (item) => parseFloat(item.preco) >= parseFloat(precoMin)
+      );
+    }
+    if (precoMax && !isNaN(parseFloat(precoMax))) {
+      filtrados = filtrados.filter(
+        (item) => parseFloat(item.preco) <= parseFloat(precoMax)
+      );
+    }
+    definirPrestadoresFiltrados(filtrados);
+  }
 
   useEffect(() => {
-    fetchDiaristas();
+    buscarPrestadoresComFiltros(); // Busca inicial sem filtros de data da API, apenas locais
   }, []);
 
-  useEffect(() => {
-    if (selectedDiarista) {
-      api
-        .get(`/prestadores/${selectedDiarista.id}/schedule`)
-        .then((response) => {
-          setPrestadorSchedule(response.data);
-        })
-        .catch((error) => {
-          console.error("Erro ao buscar agenda da diarista:", error);
-        });
-    }
-  }, [selectedDiarista]);
+  function aoAplicarTodosOsFiltrosHandler() {
+    // Se os filtros de data são aplicados pela API, chame buscarPrestadoresComFiltros.
+    // Se todos os filtros (incluindo data) são locais após uma busca inicial,
+    // então chame aplicarFiltrosLocais(prestadores) aqui.
+    // Pelo seu FiltroPrestadores, parece que a intenção é buscar na API com as datas.
+    buscarPrestadoresComFiltros();
+  }
 
-  const isDateOccupied = (date) => {
-    const targetDate = new Date(date);
+  // Handler para mudanças de data no FiltroPrestadores
+  const lidarComMudancaDataFiltro = (
+    setter,
+    dataSelecionada,
+    evento,
+    pickerSetter
+  ) => {
+    pickerSetter(Platform.OS === "ios"); // Mantém picker aberto no iOS até o usuário dispensar
+    if (evento.type === "set" && dataSelecionada) {
+      setter(dataSelecionada);
+      if (
+        setter === definirDataFiltroInicio &&
+        dataFiltroFim &&
+        dataSelecionada > dataFiltroFim
+      ) {
+        definirDataFiltroFim(null);
+        Alert.alert(
+          "Atenção",
+          "A data final do filtro foi redefinida, pois era anterior à nova data de início."
+        );
+      }
+      if (
+        setter === definirDataFiltroFim &&
+        dataFiltroInicio &&
+        dataSelecionada < dataFiltroInicio
+      ) {
+        Alert.alert(
+          "Data Inválida",
+          "A data final do filtro não pode ser anterior à data de início."
+        );
+        setter(null);
+      }
+    } else if (evento.type === "dismissed") {
+      pickerSetter(false);
+    }
+  };
+
+  const aoMudarDataInicioFiltroHandler = (evento, dataSelecionada) => {
+    lidarComMudancaDataFiltro(
+      definirDataFiltroInicio,
+      dataSelecionada,
+      evento,
+      definirMostrarSeletorDataInicio
+    );
+  };
+
+  const aoMudarDataFimFiltroHandler = (evento, dataSelecionada) => {
+    lidarComMudancaDataFiltro(
+      definirDataFiltroFim,
+      dataSelecionada,
+      evento,
+      definirMostrarSeletorDataFim
+    );
+  };
+
+  async function verAgenda(item) {
+    definirPrestadorSelecionado(item);
+    setDataInicioContratacao(null);
+    setDataFimContratacao(null);
+    setObservacoes("");
+    definirDatasOcupadas([]);
+    setLoading(true);
+    try {
+      const { data } = await api.get(`/prestadores/${item.id}/schedule`);
+      definirDatasOcupadas(Array.isArray(data) ? data : []);
+      setModalCalendarioVisivel(true);
+    } catch (erro) {
+      Alert.alert(
+        "Erro na Agenda",
+        "Não foi possível carregar a agenda da diarista."
+      );
+      console.error(
+        "Erro ao carregar agenda:",
+        erro.response?.data || erro.message || erro
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function formatarDataHoraContratacao(dataHoraCompleta) {
+    if (!dataHoraCompleta || !(dataHoraCompleta instanceof Date)) return null;
+    const ano = dataHoraCompleta.getFullYear();
+    const mes = String(dataHoraCompleta.getMonth() + 1).padStart(2, "0");
+    const dia = String(dataHoraCompleta.getDate()).padStart(2, "0");
+    const hora = String(dataHoraCompleta.getHours()).padStart(2, "0");
+    const minuto = String(dataHoraCompleta.getMinutes()).padStart(2, "0");
+    return `${ano}-${mes}-${dia} ${hora}:${minuto}:00`;
+  }
+
+  const isDateOccupiedContratacao = (dateToCheck, schedule) => {
+    const targetDate = new Date(dateToCheck);
     targetDate.setHours(0, 0, 0, 0);
 
-    return prestadorSchedule.some((item) => {
+    return schedule.some((item) => {
       const start = new Date(item.data_inicio);
       const end = new Date(item.data_fim);
       start.setHours(0, 0, 0, 0);
@@ -174,76 +234,31 @@ const Diarista = () => {
     });
   };
 
-  const handleFiltrar = async () => {
-    setLoading(true);
-    try {
-      let response;
-      if (dataInicial && dataFinal) {
-        response = await api.get("/prestadores-disponiveis/diarista", {
-          params: {
-            dataInicio: dataInicial.toISOString().split("T")[0],
-            dataFim: dataFinal.toISOString().split("T")[0],
-          },
-        });
-      } else {
-        response = await api.get("/diarista");
-      }
-      const data = response.data;
-
-      const filtered = data.filter((diarista) => {
-        let matches = true;
-        if (filtroNota)
-          matches = matches && parseInt(diarista.nota) === parseInt(filtroNota);
-        if (precoDe) matches = matches && diarista.preco >= parseFloat(precoDe);
-        if (precoAte)
-          matches = matches && diarista.preco <= parseFloat(precoAte);
-        return matches;
-      });
-
-      setFilteredDiaristas(filtered);
-    } catch (error) {
-      console.error("Erro ao buscar diaristas:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleCheckAvailability = (diarista) => {
-    setSelectedDiarista(diarista);
-    setShowPopup(true);
-  };
-
-  const closePopup = () => {
-    setShowPopup(false);
-    setSelectedDiarista(null);
-    setSelectedStartDate(null);
-    setSelectedEndDate(null);
-    setObservacoes("");
-    setShowStartPicker(false);
-    setShowEndPicker(false);
-  };
-
-  const handleConfirmation = async () => {
-    if (!selectedStartDate || !selectedEndDate) {
-      console.error("Datas de início e fim são obrigatórias.");
+  async function confirmarContratacao() {
+    if (!dataInicioContratacao || !dataFimContratacao) {
+      Alert.alert("Dados incompletos", "Selecione data/hora de início e fim.");
       return;
     }
-    if (selectedEndDate <= selectedStartDate) {
-      console.error("A data final deve ser posterior à data inicial.");
+    if (dataFimContratacao <= dataInicioContratacao) {
+      Alert.alert(
+        "Período Inválido",
+        "A data/hora final deve ser posterior à data/hora inicial."
+      );
       return;
     }
 
-    let currentDateCheck = new Date(selectedStartDate);
-    while (currentDateCheck <= selectedEndDate) {
-      if (isDateOccupied(currentDateCheck)) {
+    let currentDateCheck = new Date(dataInicioContratacao);
+    currentDateCheck.setHours(0, 0, 0, 0);
+    let endDateCheckLimit = new Date(dataFimContratacao);
+    endDateCheckLimit.setHours(0, 0, 0, 0);
+
+    while (currentDateCheck <= endDateCheckLimit) {
+      if (isDateOccupiedContratacao(currentDateCheck, datasOcupadas)) {
         Alert.alert(
-          "Erro",
+          "Período Indisponível",
           `A data ${currentDateCheck.toLocaleDateString(
             "pt-BR"
           )} no intervalo selecionado está ocupada.`
-        );
-        console.warn(
-          `Data ${currentDateCheck.toISOString().split("T")[0]} está ocupada.`
         );
         return;
       }
@@ -252,389 +267,458 @@ const Diarista = () => {
 
     setLoading(true);
     try {
-      const dataInicioFormatted = selectedStartDate
-        .toISOString()
-        .slice(0, 19)
-        .replace("T", " ");
-      const dataFimFormatted = selectedEndDate
-        .toISOString()
-        .slice(0, 19)
-        .replace("T", " ");
+      const inicioSQL = formatarDataHoraContratacao(dataInicioContratacao);
+      const fimSQL = formatarDataHoraContratacao(dataFimContratacao);
 
-      const token = await AsyncStorage.getItem("acessToken");
-      if (!token) {
-        Alert.alert("Erro", "Você precisa estar logado para contratar.");
+      if (!inicioSQL || !fimSQL) {
+        Alert.alert(
+          "Erro de Formatação",
+          "Data/hora inválida para a contratação."
+        );
         setLoading(false);
         return;
       }
 
-      const response = await api.post(
+      const token = await AsyncStorage.getItem("acessToken");
+      if (!token) {
+        Alert.alert("Autenticação Necessária", "Faça login para prosseguir.");
+        setLoading(false);
+        navegacao.navigate("Login");
+        return;
+      }
+
+      await api.post(
         "/contrato",
         {
-          prestadorId: selectedDiarista.id,
-          dataInicio: dataInicioFormatted,
-          dataFim: dataFimFormatted,
+          prestadorId: prestadorSelecionado.id,
+          dataInicio: inicioSQL,
+          dataFim: fimSQL,
           observacao: observacoes,
         },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
+        { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      console.log("Contratação confirmada com sucesso", response.data);
-      setShowPopup(false);
-      setShowConfirmationPopup(true);
-    } catch (error) {
-      console.error(
-        "Erro ao confirmar contratação:",
-        error.response ? error.response.data : error.message
-      );
+      setModalCalendarioVisivel(false);
+      setPopupConfirmacao(true);
+    } catch (erro) {
       Alert.alert(
         "Erro na Contratação",
-        error.response?.data?.message ||
-          "Não foi possível confirmar a contratação. Tente novamente."
+        erro.response?.data?.message || "Falha ao confirmar."
+      );
+      console.error(
+        "Erro ao confirmar contratação:",
+        erro.response?.data || erro.message || erro
       );
     } finally {
       setLoading(false);
     }
-  };
+  }
 
-  const handleRedirect = () => {
-    setShowConfirmationPopup(false);
-    navigation.navigate("Pedidos");
-  };
+  function redirecionar() {
+    setPopupConfirmacao(false);
+    // Resetar estados para nova busca/contratação opcionalmente
+    definirPrestadorSelecionado(null);
+    setDataInicioContratacao(null);
+    setDataFimContratacao(null);
+    setObservacoes("");
 
-  const formatarPreco = (preco) => {
-    const numericPrice = parseFloat(preco);
-    if (isNaN(numericPrice)) {
-      return "Preço Indisponível";
-    }
-    return `R$ ${numericPrice.toFixed(2)} por diária`;
+    navegacao.navigate("Pedidos");
+  }
+
+  function formatarPreco(valor) {
+    const numero = parseFloat(valor);
+    if (isNaN(numero)) return "Preço indisponível";
+    return `R$ ${numero.toFixed(2).replace(".", ",")} por diária`;
+  }
+
+  const fecharModalContratacao = () => {
+    setModalCalendarioVisivel(false);
+    definirPrestadorSelecionado(null);
+    setDataInicioContratacao(null);
+    setDataFimContratacao(null);
+    setObservacoes("");
+    setMostrarPickerInicioContratacao(false);
+    setMostrarPickerFimContratacao(false);
   };
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView
+      style={estilos.container}
+      contentContainerStyle={estilos.scrollContentContainer}
+    >
       <NavBarHome title={"Diarista"} />
-      <View style={styles.content}>
-        <Text style={styles.title}>Serviços de Diarista</Text>
-        <Text style={styles.subtitle}>
-          Encontre diaristas qualificadas para manter sua casa limpa e
-          organizada.
+      <View style={estilos.content}>
+        <Text style={estilos.title}>Serviços de Diarista</Text>
+        <Text style={estilos.subtitle}>
+          Encontre diaristas qualificadas para suas necessidades.
         </Text>
-        <Filtro
-          filtroNota={filtroNota}
-          setFiltroNota={setFiltroNota}
-          precoDe={precoDe}
-          setPrecoDe={setPrecoDe}
-          precoAte={precoAte}
-          setPrecoAte={setPrecoAte}
-          dataInicial={dataInicial}
-          setDataInicial={setDataInicial}
-          dataFinal={dataFinal}
-          setDataFinal={setDataFinal}
-          onFiltrar={handleFiltrar}
-        />
-        <Text style={styles.sectionTitle}>Nossas Diaristas</Text>
 
-        {loading && !showPopup ? (
-          <Text style={styles.noDataText}>Carregando diaristas...</Text>
-        ) : filteredDiaristas.length > 0 ? (
-          filteredDiaristas.map((diarista) => (
-            <View key={diarista.id} style={styles.card}>
-              <View style={styles.cardHeader}>
-                <Text style={styles.cardTitle}>{diarista.nome}</Text>
+        {/* USANDO FiltroPrestadores AQUI */}
+        <FiltroPrestadores
+          nota={nota}
+          definirNota={definirNota}
+          precoMin={precoMin}
+          definirPrecoMin={definirPrecoMin}
+          precoMax={precoMax}
+          definirPrecoMax={definirPrecoMax}
+          valorDataFiltroInicio={dataFiltroInicio}
+          // setDataFiltroInicio={definirDataFiltroInicio} // FiltroPrestadores não usa setDataFiltroInicio diretamente
+          valorDataFiltroFim={dataFiltroFim}
+          // setDataFiltroFim={definirDataFiltroFim}     // FiltroPrestadores não usa setDataFiltroFim diretamente
+          mostrarSeletorDataInicio={mostrarSeletorDataInicio}
+          definirMostrarSeletorDataInicio={definirMostrarSeletorDataInicio}
+          mostrarSeletorDataFim={mostrarSeletorDataFim}
+          definirMostrarSeletorDataFim={definirMostrarSeletorDataFim}
+          aoMudarDataInicioFiltro={aoMudarDataInicioFiltroHandler}
+          aoMudarDataFimFiltro={aoMudarDataFimFiltroHandler}
+          aoAplicarTodosOsFiltros={aoAplicarTodosOsFiltrosHandler}
+        />
+
+        {/* DateTimePickers para o Filtro permanecem aqui, controlados pelo Diarista e passados para FiltroPrestadores */}
+        {/* O FiltroPrestadores já tem a lógica para exibir os DateTimePickers quando mostrarSeletorDataInicio/Fim é true */}
+        {/* Portanto, não precisamos renderizá-los explicitamente aqui novamente se FiltroPrestadores os maneja */}
+
+        <Text style={estilos.sectionTitle}>Nossas Diaristas</Text>
+        {loading && !modalCalendarioVisivel && !popupConfirmacao ? (
+          <Text style={estilos.noDataText}>Carregando diaristas...</Text>
+        ) : prestadoresFiltrados.length > 0 ? (
+          prestadoresFiltrados.map((item) => (
+            <View key={item.id || item.nome} style={estilos.card}>
+              <View style={estilos.cardHeader}>
+                <Text style={estilos.cardTitle}>
+                  {item.nome || "Nome não disponível"}
+                </Text>
               </View>
-              <Text style={styles.cardText}>{diarista.titulo}</Text>
-              <Text style={styles.cardText}>{diarista.descricao}</Text>
-              <Text style={styles.cardPrice}>
-                {formatarPreco(diarista.preco)}
+              <Text style={estilos.cardText}>
+                {item.titulo || "Título não disponível"}
               </Text>
+              <Text style={estilos.cardText}>
+                {item.descricao || "Descrição não disponível"}
+              </Text>
+              <Text style={estilos.cardPrice}>{formatarPreco(item.preco)}</Text>
+              <View style={estilos.ratingContainer}>
+                {Array.from({ length: 5 }).map((_, index) => (
+                  <Text
+                    key={index}
+                    style={[
+                      estilos.star,
+                      index < Math.floor(parseFloat(item.nota) || 0)
+                        ? estilos.starFilled
+                        : estilos.starEmpty,
+                    ]}
+                  >
+                    ★
+                  </Text>
+                ))}
+                <Text style={estilos.ratingText}>({item.nota || "N/A"})</Text>
+              </View>
               <TouchableOpacity
                 onPress={() => {
-                  const phoneNumber = diarista.telefone?.replace(/[^\d]/g, "");
-                  if (phoneNumber) {
-                    Linking.openURL(`https://wa.me/55${phoneNumber}`);
-                  } else {
+                  const tel = item.telefone?.replace(/[^\d]/g, "");
+                  if (tel) Linking.openURL(`https://wa.me/55${tel}`);
+                  else
                     Alert.alert(
-                      "Erro",
-                      "Número de telefone inválido ou não fornecido."
+                      "Contato Indisponível",
+                      "WhatsApp não fornecido."
                     );
-                  }
                 }}
-                style={styles.whatsappButton}
+                style={estilos.botaoWhatsapp}
               >
-                <Text style={styles.whatsappText}>Contato via WhatsApp</Text>
+                <Text style={estilos.textoBotaoWhatsapp}>
+                  Contato via WhatsApp
+                </Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={styles.hireButton}
-                onPress={() => handleCheckAvailability(diarista)}
+                style={estilos.botaoContratar}
+                onPress={() => verAgenda(item)}
               >
-                <Text style={styles.buttonText}>Contratar {diarista.nome}</Text>
+                <Text style={estilos.textoBotao}>Ver Agenda e Contratar</Text>
               </TouchableOpacity>
             </View>
           ))
         ) : (
-          <Text style={styles.noDataText}>
-            Nenhuma diarista disponível com os filtros selecionados.
+          <Text style={estilos.noDataText}>
+            Nenhuma diarista encontrada com os filtros aplicados.
           </Text>
         )}
       </View>
 
-      <Modal
-        visible={showPopup}
-        transparent
-        animationType="slide"
-        onRequestClose={closePopup}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>
-              Disponibilidade de {selectedDiarista?.nome}
-            </Text>
-            <Text>Selecione a data e o horário desejado:</Text>
-
-            <TouchableOpacity
-              onPress={() => setShowStartPicker(true)}
-              style={styles.dateButton}
-            >
-              <Text>
-                {selectedStartDate
-                  ? selectedStartDate.toLocaleString("pt-BR", {
-                      year: "numeric",
-                      month: "numeric",
-                      day: "numeric",
-                      hour: "numeric",
-                      minute: "numeric",
-                    })
-                  : "Data e Hora Inicial"}
+      {prestadorSelecionado && (
+        <Modal
+          visible={modalCalendarioVisivel}
+          transparent
+          animationType="slide"
+          onRequestClose={fecharModalContratacao}
+        >
+          <View style={estilos.modalOverlay}>
+            <View style={estilos.modalContent}>
+              <Text style={estilos.modalTitle}>
+                Disponibilidade de {prestadorSelecionado?.nome}
               </Text>
-            </TouchableOpacity>
-            {showStartPicker && (
-              <DateTimePicker
-                value={selectedStartDate || new Date()}
-                mode="datetime"
-                display="default"
-                minimumDate={new Date()}
-                onChange={(event, date) => {
-                  const currentDate = date || selectedStartDate;
-                  setShowStartPicker(Platform.OS === "ios");
-                  setSelectedStartDate(currentDate);
-                  if (selectedEndDate && currentDate > selectedEndDate) {
-                    setSelectedEndDate(null);
-                  }
-                }}
-              />
-            )}
-
-            <TouchableOpacity
-              onPress={() => setShowEndPicker(true)}
-              style={[
-                styles.dateButton,
-                !selectedStartDate && styles.disabledButton,
-              ]}
-              disabled={!selectedStartDate}
-            >
-              <Text style={selectedStartDate ? {} : styles.disabledButtonText}>
-                {selectedEndDate
-                  ? selectedEndDate.toLocaleString("pt-BR", {
-                      year: "numeric",
-                      month: "numeric",
-                      day: "numeric",
-                      hour: "numeric",
-                      minute: "numeric",
-                    })
-                  : "Data e Hora Final"}
+              <Text style={estilos.modalSubtitle}>
+                Selecione a data e o horário desejado:
               </Text>
-            </TouchableOpacity>
-            {showEndPicker && selectedStartDate && (
-              <DateTimePicker
-                value={selectedEndDate || selectedStartDate}
-                mode="datetime"
-                display="default"
-                minimumDate={selectedStartDate}
-                onChange={(event, date) => {
-                  const currentDate = date || selectedEndDate;
-                  setShowEndPicker(Platform.OS === "ios");
-                  setSelectedEndDate(currentDate);
-                }}
-              />
-            )}
 
-            <TextInput
-              style={styles.textArea}
-              value={observacoes}
-              onChangeText={setObservacoes}
-              placeholder="Adicione observações (opcional)"
-              multiline
-            />
-
-            <View style={styles.modalButtons}>
+              <Text style={estilos.labelDataHora}>Data e Hora de Início:</Text>
               <TouchableOpacity
-                style={styles.cancelButton}
-                onPress={closePopup}
+                onPress={() => setMostrarPickerInicioContratacao(true)}
+                style={estilos.dateButtonModal}
               >
-                <Text>Cancelar</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.confirmButton,
-                  (!selectedStartDate ||
-                    !selectedEndDate ||
-                    selectedEndDate <= selectedStartDate ||
-                    loading) &&
-                    styles.disabledButton,
-                ]}
-                onPress={handleConfirmation}
-                disabled={
-                  !selectedStartDate ||
-                  !selectedEndDate ||
-                  selectedEndDate <= selectedStartDate ||
-                  loading
-                }
-              >
-                <Text style={styles.buttonText}>
-                  {loading ? "Confirmando..." : "Confirmar"}
+                <Text style={estilos.dateButtonTextModal}>
+                  {dataInicioContratacao
+                    ? dataInicioContratacao.toLocaleString("pt-BR", {
+                        day: "2-digit",
+                        month: "2-digit",
+                        year: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })
+                    : "Selecionar Início"}
                 </Text>
               </TouchableOpacity>
+              {mostrarPickerInicioContratacao && (
+                <DateTimePicker
+                  value={dataInicioContratacao || new Date()}
+                  mode="datetime"
+                  display="default"
+                  minimumDate={new Date()}
+                  onChange={(event, date) => {
+                    const currentDate = date || dataInicioContratacao; // Mantém a data anterior se o usuário cancelar (Android)
+                    setMostrarPickerInicioContratacao(Platform.OS === "ios");
+                    if (event.type === "set" && currentDate) {
+                      setDataInicioContratacao(currentDate);
+                      if (
+                        dataFimContratacao &&
+                        currentDate > dataFimContratacao
+                      ) {
+                        setDataFimContratacao(null);
+                      }
+                    }
+                  }}
+                />
+              )}
+
+              <Text style={estilos.labelDataHora}>Data e Hora de Fim:</Text>
+              <TouchableOpacity
+                onPress={() => setMostrarPickerFimContratacao(true)}
+                style={[
+                  estilos.dateButtonModal,
+                  !dataInicioContratacao && estilos.disabledButton,
+                ]}
+                disabled={!dataInicioContratacao}
+              >
+                <Text
+                  style={[
+                    estilos.dateButtonTextModal,
+                    !dataInicioContratacao && estilos.disabledButtonTextContent,
+                  ]}
+                >
+                  {dataFimContratacao
+                    ? dataFimContratacao.toLocaleString("pt-BR", {
+                        day: "2-digit",
+                        month: "2-digit",
+                        year: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })
+                    : "Selecionar Fim"}
+                </Text>
+              </TouchableOpacity>
+              {mostrarPickerFimContratacao && dataInicioContratacao && (
+                <DateTimePicker
+                  value={dataFimContratacao || dataInicioContratacao} // Garante que o picker inicie com uma data válida
+                  mode="datetime"
+                  display="default"
+                  minimumDate={dataInicioContratacao}
+                  onChange={(event, date) => {
+                    const currentDate = date || dataFimContratacao;
+                    setMostrarPickerFimContratacao(Platform.OS === "ios");
+                    if (event.type === "set" && currentDate) {
+                      setDataFimContratacao(currentDate);
+                    }
+                  }}
+                />
+              )}
+
+              <TextInput
+                style={estilos.textArea}
+                value={observacoes}
+                onChangeText={setObservacoes}
+                placeholder="Adicione observações (opcional)"
+                multiline
+              />
+              <View style={estilos.modalButtons}>
+                <TouchableOpacity
+                  style={estilos.cancelButtonModal}
+                  onPress={fecharModalContratacao}
+                >
+                  <Text style={estilos.buttonTextModalCancel}>Cancelar</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    estilos.confirmButtonModal,
+                    (!dataInicioContratacao ||
+                      !dataFimContratacao ||
+                      dataFimContratacao <= dataInicioContratacao ||
+                      loading) &&
+                      estilos.disabledButton,
+                  ]}
+                  onPress={confirmarContratacao}
+                  disabled={
+                    !dataInicioContratacao ||
+                    !dataFimContratacao ||
+                    dataFimContratacao <= dataInicioContratacao ||
+                    loading
+                  }
+                >
+                  <Text style={estilos.buttonTextModalConfirm}>
+                    {loading ? "Confirmando..." : "Confirmar"}
+                  </Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
-        </View>
-      </Modal>
+        </Modal>
+      )}
+
       <Modal
-        visible={showConfirmationPopup}
+        visible={popupConfirmacao}
         transparent
         animationType="slide"
-        onRequestClose={handleRedirect}
+        onRequestClose={redirecionar}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Contratação Confirmada!</Text>
-            <Text>
-              A contratação da diarista {selectedDiarista?.nome} foi realizada
-              com sucesso!
+        <View style={estilos.modalOverlay}>
+          <View style={estilos.modalContent}>
+            <Text style={estilos.modalTitle}>Contratação Confirmada!</Text>
+            <Text style={estilos.modalTextConfirmation}>
+              A contratação da diarista {prestadorSelecionado?.nome} foi
+              realizada com sucesso!
             </Text>
             <TouchableOpacity
-              style={styles.confirmButton}
-              onPress={handleRedirect}
+              style={estilos.confirmButtonPopup}
+              onPress={redirecionar}
             >
-              <Text style={styles.buttonText}>Ver Solicitações</Text>
+              <Text style={estilos.buttonText}>Ver Solicitações</Text>
             </TouchableOpacity>
           </View>
         </View>
       </Modal>
     </ScrollView>
   );
-};
+}
 
-const styles = StyleSheet.create({
+// Estilos (os mesmos da sua última mensagem, apenas com o nome 'estilos')
+const estilos = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#075985" },
-  content: { padding: 20 },
+  scrollContentContainer: { paddingBottom: 30 },
+  content: { paddingHorizontal: 20, paddingTop: 10 },
   title: {
-    fontSize: 24,
+    fontSize: 26,
     fontWeight: "bold",
     color: "#fff",
     textAlign: "center",
-    marginBottom: 10,
+    marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
-    color: "#fff",
+    color: "#e0f2fe",
     textAlign: "center",
-    marginBottom: 20,
+    marginBottom: 25,
   },
   sectionTitle: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: "600",
     color: "#fff",
     textAlign: "center",
-    marginBottom: 15,
-    marginTop: 10,
-  },
-  filterContainer: {
     marginBottom: 20,
-    backgroundColor: "rgba(255,255,255,0.1)",
-    padding: 15,
-    borderRadius: 8,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 5,
-    padding: 10,
-    marginBottom: 10,
-    backgroundColor: "#fff",
-    color: "#334155",
-  },
-  dateButton: {
-    padding: 10,
-    backgroundColor: "#e5e7eb",
-    borderRadius: 5,
-    marginBottom: 10,
-    alignItems: "center",
-  },
-  filterButton: {
-    backgroundColor: "#0284c7",
-    padding: 10,
-    borderRadius: 5,
-    alignItems: "center",
     marginTop: 5,
   },
+
   card: {
     backgroundColor: "#fff",
-    padding: 15,
-    borderRadius: 10,
-    marginBottom: 15,
+    padding: 18,
+    borderRadius: 12,
+    marginBottom: 18,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.1,
     shadowRadius: 5,
     elevation: 3,
   },
   cardHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 5,
+    alignItems: "center",
+    marginBottom: 8,
   },
-  cardTitle: { fontSize: 18, fontWeight: "bold", color: "#075985" },
-  cardText: { color: "#4b5563", marginBottom: 5, lineHeight: 20 },
+  cardTitle: { fontSize: 20, fontWeight: "bold", color: "#075985" },
+  cardText: { fontSize: 15, color: "#475569", lineHeight: 22, marginBottom: 5 },
   cardPrice: {
-    fontWeight: "600",
-    color: "#0284c7",
-    marginTop: 5,
-    fontSize: 15,
+    fontSize: 17,
+    fontWeight: "700",
+    color: "#0369a1",
+    marginTop: 8,
+    marginBottom: 12,
   },
-  whatsappButton: { marginTop: 10, alignSelf: "flex-start" },
-  whatsappText: { color: "#22c55e", fontWeight: "bold" },
-  hireButton: {
-    backgroundColor: "#0284c7",
-    padding: 10,
-    borderRadius: 5,
+
+  ratingContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 8,
+    marginBottom: 8,
+  },
+  star: { fontSize: 18, marginRight: 3 },
+  starFilled: { color: "#FBBF24" },
+  starEmpty: { color: "#D1D5DB" },
+  ratingText: { marginLeft: 6, color: "#4B5563", fontSize: 14 },
+
+  botaoWhatsapp: {
+    backgroundColor: "#25D366",
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    borderRadius: 8,
     alignItems: "center",
     marginTop: 10,
-    alignSelf: "flex-end",
+    flexDirection: "row",
+    justifyContent: "center",
   },
-  buttonText: { color: "#fff", fontWeight: "600" },
-  noDataText: {
+  textoBotaoWhatsapp: {
     color: "#fff",
+    fontWeight: "600",
+    fontSize: 15,
+    marginLeft: 0,
+  },
+  botaoContratar: {
+    backgroundColor: "#0284c7",
+    paddingVertical: 12,
+    paddingHorizontal: 15,
+    borderRadius: 8,
+    alignItems: "center",
+    marginTop: 12,
+  },
+  textoBotao: { color: "#fff", fontWeight: "600", fontSize: 16 },
+
+  noDataText: {
+    color: "#bae6fd",
     textAlign: "center",
-    marginTop: 20,
+    fontSize: 16,
+    paddingVertical: 20,
     fontStyle: "italic",
   },
+
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.5)",
+    backgroundColor: "rgba(0,0,0,0.6)",
     justifyContent: "center",
     alignItems: "center",
     padding: 20,
   },
   modalContent: {
     backgroundColor: "#fff",
-    padding: 20,
+    padding: 25,
     borderRadius: 10,
-    width: "90%",
-    maxWidth: 400,
+    width: "95%",
+    maxWidth: 450,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.25,
@@ -642,47 +726,83 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   modalTitle: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: "bold",
     color: "#075985",
-    marginBottom: 15,
+    marginBottom: 10,
     textAlign: "center",
   },
+  modalSubtitle: {
+    fontSize: 16,
+    color: "#374151",
+    marginBottom: 20,
+    textAlign: "center",
+  },
+  labelDataHora: {
+    fontSize: 15,
+    color: "#4b5563",
+    marginBottom: 5,
+    marginTop: 10,
+    fontWeight: "500",
+  },
+  dateButtonModal: {
+    paddingVertical: 12,
+    backgroundColor: "#f3f4f6",
+    borderRadius: 5,
+    marginBottom: 10,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#d1d5db",
+  },
+  dateButtonTextModal: { color: "#1f2937", fontSize: 15 },
   textArea: {
     borderWidth: 1,
-    borderColor: "#ccc",
+    borderColor: "#d1d5db",
     borderRadius: 5,
-    padding: 10,
+    padding: 12,
     height: 100,
-    marginBottom: 15,
+    marginBottom: 20,
     textAlignVertical: "top",
-    backgroundColor: "#f8fafc",
+    backgroundColor: "#f9fafb",
+    fontSize: 15,
+    color: "#334155",
+    marginTop: 10,
   },
   modalButtons: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginTop: 10,
+    marginTop: 15,
   },
-  cancelButton: {
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    backgroundColor: "#d1d5db",
+  cancelButtonModal: {
+    paddingVertical: 12,
+    paddingHorizontal: 25,
+    backgroundColor: "#e5e7eb",
     borderRadius: 5,
-    marginRight: 10,
   },
-  confirmButton: {
-    paddingVertical: 10,
-    paddingHorizontal: 20,
+  buttonTextModalCancel: { color: "#374151", fontWeight: "600", fontSize: 15 },
+  confirmButtonModal: {
+    paddingVertical: 12,
+    paddingHorizontal: 25,
+    backgroundColor: "#0ea5e9",
+    borderRadius: 5,
+  },
+  buttonTextModalConfirm: { color: "#fff", fontWeight: "600", fontSize: 15 },
+
+  disabledButton: { backgroundColor: "#d1d5db", opacity: 0.7 },
+  disabledButtonTextContent: { color: "#6b7280" },
+
+  modalTextConfirmation: {
+    fontSize: 16,
+    color: "#374151",
+    textAlign: "center",
+    marginBottom: 25,
+    lineHeight: 24,
+  },
+  confirmButtonPopup: {
     backgroundColor: "#0284c7",
-    borderRadius: 5,
-  },
-  disabledButton: {
-    backgroundColor: "#9ca3af",
-    opacity: 0.7,
-  },
-  disabledButtonText: {
-    color: "#6b7280",
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    alignItems: "center",
   },
 });
-
-export default Diarista;
