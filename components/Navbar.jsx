@@ -17,7 +17,9 @@ const Navbar = () => {
         tabBarInactiveTintColor: 'black', 
         tabBarLabelStyle: {
           fontWeight: 'bold', 
+          
         },
+      
       }}
     >
       <Tab.Screen 
