@@ -5,609 +5,516 @@ import {
   ScrollView,
   TouchableOpacity,
   StyleSheet,
-  TextInput,
-  Modal,
-  Platform,
   Linking,
+  Alert,
+  Platform,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import DateTimePicker from "@react-native-community/datetimepicker";
-import Icon from "react-native-vector-icons/Ionicons";
 import api from "../../services/api";
+import FiltroPrestadores from "../FiltroPrestadores";
+import CalendarioContratacao from "../CalendarioContratacao";
 import NavBarHome from "../NavBarHome";
+import { ArrowDown } from "lucide-react-native";
 
+const formatarDataParaAPI = (data) => {
+  if (!data) return null;
 
-const Filtro = ({
-  filtroNota,
-  setFiltroNota,
-  precoDe,
-  setPrecoDe,
-  precoAte,
-  setPrecoAte,
-  dataInicial,
-  setDataInicial,
-  dataFinal,
-  setDataFinal,
-  onFiltrar,
-}) => {
-  const [showStartDate, setShowStartDate] = useState(false);
-  const [showEndDate, setShowEndDate] = useState(false);
-
-  return (
-    <View style={styles.filterContainer}>
-      <TextInput
-        style={styles.input}
-        placeholder="Nota (0-5)"
-        value={filtroNota}
-        onChangeText={setFiltroNota}
-        keyboardType="numeric"
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Preço Mínimo"
-        value={precoDe}
-        onChangeText={setPrecoDe}
-        keyboardType="numeric"
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Preço Máximo"
-        value={precoAte}
-        onChangeText={setPrecoAte}
-        keyboardType="numeric"
-      />
-      <TouchableOpacity
-        onPress={() => setShowStartDate(true)}
-        style={styles.dateButton}
-      >
-        <Text>
-          {dataInicial
-            ? dataInicial.toLocaleDateString("pt-BR")
-            : "Data Inicial"}
-        </Text>
-      </TouchableOpacity>
-      {showStartDate && (
-        <DateTimePicker
-          value={dataInicial || new Date()}
-          mode="date"
-          display="default"
-          onChange={(event, date) => {
-            setShowStartDate(Platform.OS === "ios");
-            if (date) setDataInicial(date);
-          }}
-        />
-      )}
-      <TouchableOpacity
-        onPress={() => setShowEndDate(true)}
-        style={styles.dateButton}
-      >
-        <Text>
-          {dataFinal ? dataFinal.toLocaleDateString("pt-BR") : "Data Final"}
-        </Text>
-      </TouchableOpacity>
-      {showEndDate && (
-        <DateTimePicker
-          value={dataFinal || new Date()}
-          mode="date"
-          display="default"
-          minimumDate={dataInicial}
-          onChange={(event, date) => {
-            setShowEndDate(Platform.OS === "ios");
-            if (date) setDataFinal(date);
-          }}
-        />
-      )}
-
-      <TouchableOpacity style={styles.filterButton} onPress={onFiltrar}>
-        <Text style={styles.buttonText}>Filtrar Assistências Técnicas</Text>
-      </TouchableOpacity>
-    </View>
-  );
+  if (!(data instanceof Date)) {
+    return null;
+  }
+  const ano = data.getFullYear();
+  const mes = String(data.getMonth() + 1).padStart(2, "0");
+  const dia = String(data.getDate()).padStart(2, "0");
+  return `${ano}-${mes}-${dia}`;
 };
 
-const AssistenciaTecnica = () => {
-  const [filtroNota, setFiltroNota] = useState("");
-  const [precoDe, setPrecoDe] = useState("");
-  const [precoAte, setPrecoAte] = useState("");
-  const [dataInicial, setDataInicial] = useState(null);
-  const [dataFinal, setDataFinal] = useState(null);
-  const [assistenciasTecnicas, setAssistenciasTecnicas] = useState([]);
-  const [filteredAssistenciasTecnicas, setFilteredAssistenciasTecnicas] =
-    useState([]);
-  const [showPopup, setShowPopup] = useState(false);
-  const [showConfirmationPopup, setShowConfirmationPopup] = useState(false);
-  const [selectedAssistenciaTecnica, setSelectedAssistenciaTecnica] =
-    useState(null);
-  const [selectedStartDate, setSelectedStartDate] = useState(null);
-  const [selectedEndDate, setSelectedEndDate] = useState(null);
+export default function AssistenciaTecnica() {
+  const [nota, definirNota] = useState("");
+  const [precoMin, definirPrecoMin] = useState("");
+  const [precoMax, definirPrecoMax] = useState("");
+
+  const [dataFiltroInicio, definirDataFiltroInicio] = useState(null);
+  const [dataFiltroFim, definirDataFiltroFim] = useState(null);
+  const [mostrarSeletorDataInicio, definirMostrarSeletorDataInicio] =
+    useState(false);
+  const [mostrarSeletorDataFim, definirMostrarSeletorDataFim] = useState(false);
+
+  const [prestadores, definirPrestadores] = useState([]);
+  const [prestadoresFiltrados, definirPrestadoresFiltrados] = useState([]);
+  const [prestadorSelecionado, definirPrestadorSelecionado] = useState(null);
+
+  const [dataInicio, setDataInicio] = useState(null);
+  const [dataFim, setDataFim] = useState(null);
+  const [datasOcupadas, definirDatasOcupadas] = useState({});
+
+  const [mostrarHorarioInicial, setMostrarHorarioInicial] = useState(false);
+  const [mostrarHorarioFinal, setMostrarHorarioFinal] = useState(false);
+  const [horarioInicial, setHorarioInicial] = useState(null);
+  const [horarioFinal, setHorarioFinal] = useState(null);
   const [observacoes, setObservacoes] = useState("");
-  const [prestadorSchedule, setPrestadorSchedule] = useState([]);
-  const [showStartPicker, setShowStartPicker] = useState(false);
-  const [showEndPicker, setShowEndPicker] = useState(false);
+  const [modalCalendarioVisivel, setModalCalendarioVisivel] = useState(false);
+  const [popupConfirmacao, setPopupConfirmacao] = useState(false);
 
-  const navigation = useNavigation();
+  const navegacao = useNavigation();
 
-  const fetchAssistenciasTecnicas = async () => {
+  async function buscarPrestadoresComFiltros() {
     try {
-      const response = await api.get("/assistenciatecnica");
-      setAssistenciasTecnicas(response.data);
-      setFilteredAssistenciasTecnicas(response.data);
-    } catch (error) {
-      console.error("Erro ao buscar assistências técnicas:", error);
-    }
-  };
+      let endpoint = "/assistencia_tecnica";
+      const params = new URLSearchParams();
 
-  useEffect(() => {
-    fetchAssistenciasTecnicas();
-  }, []);
+      const dataInicioFormatada = formatarDataParaAPI(dataFiltroInicio);
+      const dataFimFormatada = formatarDataParaAPI(dataFiltroFim);
 
-  useEffect(() => {
-    if (selectedAssistenciaTecnica) {
-      api
-        .get(`/prestadores/${selectedAssistenciaTecnica.id}/schedule`)
-        .then((response) => {
-          setPrestadorSchedule(response.data);
-        })
-        .catch((error) => {
-          console.error("Erro ao buscar agenda da assistência técnica:", error);
-        });
-    }
-  }, [selectedAssistenciaTecnica]);
-
-  const isDateOccupied = (date) => {
-    const targetDate = new Date(date);
-    targetDate.setHours(0, 0, 0, 0);
-
-    return prestadorSchedule.some((item) => {
-      const start = new Date(item.data_inicio);
-      const end = new Date(item.data_fim);
-      start.setHours(0, 0, 0, 0);
-      end.setHours(0, 0, 0, 0);
-      return targetDate >= start && targetDate <= end;
-    });
-  };
-
-  const handleFiltrar = async () => {
-    try {
-      let response;
-      if (dataInicial && dataFinal) {
-        response = await api.get(
-          "/prestadores-disponiveis/assistenciatecnica",
-          {
-            params: {
-              dataInicio: dataInicial.toISOString().split("T")[0],
-              dataFim: dataFinal.toISOString().split("T")[0],
-            },
-          }
-        );
-      } else {
-        response = await api.get("/assistenciatecnica");
+      if (dataInicioFormatada) {
+        params.append("disponivel_de", dataInicioFormatada);
+      }
+      if (dataFimFormatada) {
+        params.append("disponivel_ate", dataFimFormatada);
       }
 
-      const data = response.data;
+      if (params.toString()) {
+        endpoint += `?${params.toString()}`;
+      }
+      const resposta = await api.get(endpoint);
+      const dadosRecebidos = Array.isArray(resposta.data) ? resposta.data : [];
+      definirPrestadores(dadosRecebidos);
+      aplicarFiltrosLocais(dadosRecebidos);
+    } catch (erro) {
+      Alert.alert(
+        "Erro na Busca",
+        "Não foi possível buscar serviços de assistência técnica. Verifique sua conexão ou tente mais tarde."
+      );
+      definirPrestadores([]);
+      definirPrestadoresFiltrados([]);
+    }
+  }
 
-      const filtered = data.filter((assistenciaTecnica) => {
-        let matches = true;
-        if (filtroNota)
-          matches =
-            matches &&
-            parseInt(assistenciaTecnica.nota) === parseInt(filtroNota);
-        if (precoDe)
-          matches = matches && assistenciaTecnica.preco >= parseFloat(precoDe);
-        if (precoAte)
-          matches = matches && assistenciaTecnica.preco <= parseFloat(precoAte);
-        return matches;
-      });
+  function aplicarFiltrosLocais(listaBase) {
+    let filtrados = [...listaBase];
+    if (nota) {
+      filtrados = filtrados.filter(
+        (item) => parseInt(item.nota, 10) === parseInt(nota, 10)
+      );
+    }
+    if (precoMin) {
+      filtrados = filtrados.filter(
+        (item) => parseFloat(item.preco) >= parseFloat(precoMin)
+      );
+    }
+    if (precoMax) {
+      filtrados = filtrados.filter(
+        (item) => parseFloat(item.preco) <= parseFloat(precoMax)
+      );
+    }
+    definirPrestadoresFiltrados(filtrados);
+  }
 
-      setFilteredAssistenciasTecnicas(filtered);
-    } catch (error) {
-      console.error("Erro ao buscar assistências técnicas:", error);
+  useEffect(() => {
+    buscarPrestadoresComFiltros();
+  }, []);
+
+  function aoAplicarTodosOsFiltrosHandler() {
+    buscarPrestadoresComFiltros();
+  }
+
+  const lidarComMudancaData = (
+    setter,
+    dataSelecionada,
+    tipoEvento,
+    pickerSetter
+  ) => {
+    pickerSetter(Platform.OS === "ios" ? tipoEvento !== "set" : false);
+    if (tipoEvento === "set" && dataSelecionada) {
+      setter(dataSelecionada);
+      if (
+        setter === definirDataFiltroInicio &&
+        dataFiltroFim &&
+        dataSelecionada > dataFiltroFim
+      ) {
+        definirDataFiltroFim(null);
+        Alert.alert(
+          "Atenção",
+          "A data final foi redefinida pois era anterior à nova data de início."
+        );
+      }
+      if (
+        setter === definirDataFiltroFim &&
+        dataFiltroInicio &&
+        dataSelecionada < dataFiltroInicio
+      ) {
+        Alert.alert(
+          "Data Inválida",
+          "A data final não pode ser anterior à data de início."
+        );
+        setter(null);
+      }
+    } else if (tipoEvento === "dismissed") {
+      pickerSetter(false);
     }
   };
 
-  const handleCheckAvailability = (assistenciaTecnica) => {
-    setSelectedAssistenciaTecnica(assistenciaTecnica);
-    setShowPopup(true);
+  const lidarComMudancaDataInicio = (evento, dataSelecionada) => {
+    lidarComMudancaData(
+      definirDataFiltroInicio,
+      dataSelecionada,
+      evento.type,
+      definirMostrarSeletorDataInicio
+    );
   };
 
-  const closePopup = () => {
-    setShowPopup(false);
-    setSelectedAssistenciaTecnica(null);
-    setSelectedStartDate(null);
-    setSelectedEndDate(null);
+  const lidarComMudancaDataFim = (evento, dataSelecionada) => {
+    lidarComMudancaData(
+      definirDataFiltroFim,
+      dataSelecionada,
+      evento.type,
+      definirMostrarSeletorDataFim
+    );
+  };
+
+  async function verAgenda(item) {
+    definirPrestadorSelecionado(item);
+    setDataInicio(null);
+    setDataFim(null);
+    setHorarioInicial(null);
+    setHorarioFinal(null);
     setObservacoes("");
-    setShowStartPicker(false);
-    setShowEndPicker(false);
-  };
 
-  const handleConfirmation = async () => {
-    if (!selectedStartDate || !selectedEndDate) {
-      console.error("Datas de início e fim são obrigatórias.");
+    try {
+      const { data } = await api.get(`/prestadores/${item.id}/schedule`);
+      const marcacoes = {};
+
+      (Array.isArray(data) ? data : []).forEach((evento) => {
+        if (evento.data_inicio && evento.data_fim) {
+          const inicio = new Date(evento.data_inicio);
+          const fim = new Date(evento.data_fim);
+          let atual = new Date(inicio.valueOf());
+          while (atual <= fim) {
+            const ano = atual.getFullYear();
+            const mes = String(atual.getMonth() + 1).padStart(2, "0");
+            const dia = String(atual.getDate()).padStart(2, "0");
+            const chave = `${ano}-${mes}-${dia}`;
+            marcacoes[chave] = {
+              disabled: true,
+              marked: true,
+              dotColor: "red",
+              disableTouchEvent: true,
+            };
+            atual.setDate(atual.getDate() + 1);
+          }
+        }
+      });
+      definirDatasOcupadas(marcacoes);
+      setModalCalendarioVisivel(true);
+    } catch (erro) {
+      Alert.alert(
+        "Erro na Agenda",
+        "Não foi possível carregar a agenda do prestador."
+      );
+      console.error(
+        "Erro ao carregar agenda:",
+        erro.response?.data || erro.message || erro
+      );
+    }
+  }
+
+  function formatarData(diaISO, hora) {
+    if (!diaISO || !hora || !(hora instanceof Date)) return null;
+    const [ano, mes, dia] = diaISO.split("-");
+    const hh = String(hora.getHours()).padStart(2, "0");
+    const mm = String(hora.getMinutes()).padStart(2, "0");
+    return `${ano}-${mes}-${dia} ${hh}:${mm}:00`;
+  }
+
+  async function confirmarContratacao() {
+    if (!dataInicio || !horarioInicial || !dataFim || !horarioFinal) {
+      Alert.alert("Dados incompletos", "Selecione período e horários.");
       return;
     }
-    if (selectedEndDate <= selectedStartDate) {
-      console.error("A data final deve ser posterior à data inicial.");
+
+    const inicioSQL = formatarData(
+      dataInicio.dateString || dataInicio,
+      horarioInicial
+    );
+    const fimSQL = formatarData(dataFim.dateString || dataFim, horarioFinal);
+
+    if (!inicioSQL || !fimSQL) {
+      Alert.alert(
+        "Erro de Formatação",
+        "Data/hora inválida para a contratação."
+      );
       return;
     }
 
     try {
-      const dataInicioFormatted = selectedStartDate
-        .toISOString()
-        .slice(0, 19)
-        .replace("T", " ");
-      const dataFimFormatted = selectedEndDate
-        .toISOString()
-        .slice(0, 19)
-        .replace("T", " ");
-
       const token = await AsyncStorage.getItem("acessToken");
-
-      const response = await api.post(
+      if (!token) {
+        Alert.alert("Autenticação Necessária", "Faça login para prosseguir.");
+        return;
+      }
+      await api.post(
         "/contrato",
         {
-          prestadorId: selectedAssistenciaTecnica.id,
-          dataInicio: dataInicioFormatted,
-          dataFim: dataFimFormatted,
+          prestadorId: prestadorSelecionado.id,
+          dataInicio: inicioSQL,
+          dataFim: fimSQL,
           observacao: observacoes,
         },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
+        { headers: { Authorization: `Bearer ${token}` } }
       );
-
-      console.log("Contratação confirmada com sucesso", response.data);
-      setShowPopup(false);
-      setShowConfirmationPopup(true);
-    } catch (error) {
+      setModalCalendarioVisivel(false);
+      setPopupConfirmacao(true);
+    } catch (erro) {
+      Alert.alert(
+        "Erro na Contratação",
+        "Falha ao confirmar. Tente novamente."
+      );
       console.error(
         "Erro ao confirmar contratação:",
-        error.response ? error.response.data : error.message
+        erro.response?.data || erro.message || erro
       );
     }
-  };
+  }
 
-  const handleRedirect = () => {
-    setShowConfirmationPopup(false);
-    navigation.navigate("Pedidos");
-  };
+  function redirecionar() {
+    try {
+      setPopupConfirmacao(false);
+      if (navegacao && typeof navegacao.navigate === "function") {
+        navegacao.navigate("Pedidos");
+      } else {
+        Alert.alert(
+          "Erro de Navegação",
+          "Controlador de navegação indisponível."
+        );
+      }
+    } catch (error) {
+      Alert.alert(
+        "Erro de Navegação",
+        `Não foi possível acessar Pedidos: ${error.message}`
+      );
+    }
+  }
 
-  const formatarPreco = (preco) => {
-    return `R$ ${parseFloat(preco).toFixed(2)} por diária`;
-  };
+  function formatarPreco(valor) {
+    const numero = parseFloat(valor);
+    if (isNaN(numero)) return "Preço indisponível";
+    return `R$ ${numero.toFixed(2).replace(".", ",")} por hora`;
+  }
 
   return (
-    <ScrollView style={styles.container}>
-      <NavBarHome title={"Assitência Técnica"} />
-      <View style={styles.content}>
-        <Text style={styles.title}>Serviços de Assistência Técnica</Text>
-        <Text style={styles.subtitle}>
-          Encontre assistências técnicas qualificadas para suas necessidades,
-          garantindo segurança e qualidade no serviço.
+    <ScrollView
+      style={estilos.container}
+      contentContainerStyle={estilos.scrollContentContainer}
+    >
+      <NavBarHome title={"Assistência Técnica"} />
+      <View style={estilos.conteudo}>
+        <Text style={estilos.titulo}>Serviços de Assistência Técnica</Text>
+        <Text style={estilos.subtitulo}>
+          Encontre a melhor assistência técnica para seus aparelhos.
         </Text>
 
-        <Filtro
-          filtroNota={filtroNota}
-          setFiltroNota={setFiltroNota}
-          precoDe={precoDe}
-          setPrecoDe={setPrecoDe}
-          precoAte={precoAte}
-          setPrecoAte={setPrecoAte}
-          dataInicial={dataInicial}
-          setDataInicial={setDataInicial}
-          dataFinal={dataFinal}
-          setDataFinal={setDataFinal}
-          onFiltrar={handleFiltrar}
+        <FiltroPrestadores
+          nota={nota}
+          definirNota={definirNota}
+          precoMin={precoMin}
+          definirPrecoMin={definirPrecoMin}
+          precoMax={precoMax}
+          definirPrecoMax={definirPrecoMax}
+          valorDataFiltroInicio={dataFiltroInicio}
+          valorDataFiltroFim={dataFiltroFim}
+          mostrarSeletorDataInicio={mostrarSeletorDataInicio}
+          definirMostrarSeletorDataInicio={definirMostrarSeletorDataInicio}
+          mostrarSeletorDataFim={mostrarSeletorDataFim}
+          definirMostrarSeletorDataFim={definirMostrarSeletorDataFim}
+          aoMudarDataInicioFiltro={lidarComMudancaDataInicio}
+          aoMudarDataFimFiltro={lidarComMudancaDataFim}
+          aoAplicarTodosOsFiltros={aoAplicarTodosOsFiltrosHandler}
         />
 
-        <Text style={styles.sectionTitle}>Nossas Assistências Técnicas</Text>
+        <Text style={estilos.subtitulo2}>Nossos Técnicos</Text>
 
-        {filteredAssistenciasTecnicas.length > 0 ? (
-          filteredAssistenciasTecnicas.map((assistenciaTecnica) => (
-            <View key={assistenciaTecnica.id} style={styles.card}>
-              <View style={styles.cardHeader}>
-                <Text style={styles.cardTitle}>{assistenciaTecnica.nome}</Text>
+        {prestadoresFiltrados.length > 0 ? (
+          prestadoresFiltrados.map((item) => (
+            <View key={item.id || item.nome} style={estilos.card}>
+              <View style={estilos.cardHeader}>
+                <Text style={estilos.cardTitle}>
+                  {item.nome || "Nome não disponível"}
+                </Text>
               </View>
-              <Text style={styles.cardText}>{assistenciaTecnica.titulo}</Text>
-              <Text style={styles.cardText}>
-                {assistenciaTecnica.descricao}
+              <Text style={estilos.cardText}>
+                {item.titulo || "Título não disponível"}
               </Text>
-              <Text style={styles.cardPrice}>
-                {formatarPreco(assistenciaTecnica.preco)}
+              <Text style={estilos.cardText}>
+                {item.descricao || "Descrição não disponível"}
               </Text>
+              <Text style={estilos.cardPrice}>{formatarPreco(item.preco)}</Text>
+              <View style={estilos.ratingContainer}>
+                {Array.from({ length: 5 }).map((_, index) => (
+                  <Text
+                    key={index}
+                    style={[
+                      estilos.star,
+                      index < Math.floor(parseFloat(item.nota) || 0)
+                        ? estilos.starFilled
+                        : estilos.starEmpty,
+                    ]}
+                  >
+                    ★
+                  </Text>
+                ))}
+                <Text style={estilos.ratingText}>({item.nota || "N/A"})</Text>
+              </View>
               <TouchableOpacity
-                onPress={() =>
-                  Linking.openURL(
-                    `https://wa.me/55${assistenciaTecnica.telefone.replace(
-                      /[^\d]/g,
-                      ""
-                    )}`
-                  )
-                }
-                style={styles.whatsappButton}
+                onPress={() => {
+                  const tel = item.telefone?.replace(/[^\d]/g, "");
+                  if (tel) Linking.openURL(`https://wa.me/55${tel}`);
+                  else
+                    Alert.alert(
+                      "Contato Indisponível",
+                      "WhatsApp não fornecido."
+                    );
+                }}
+                style={estilos.botaoWhatsapp}
               >
-                <Text style={styles.whatsappText}>Contato via WhatsApp</Text>
+                <Text style={estilos.textoBotaoWhatsapp}>
+                  Contato via WhatsApp
+                </Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={styles.hireButton}
-                onPress={() => handleCheckAvailability(assistenciaTecnica)}
+                style={estilos.botaoContratar}
+                onPress={() => verAgenda(item)}
               >
-                <Text style={styles.buttonText}>
-                  Contratar {assistenciaTecnica.nome}
-                </Text>
+                <Text style={estilos.textoBotao}>Ver Agenda e Contratar</Text>
               </TouchableOpacity>
             </View>
           ))
         ) : (
-          <Text style={styles.noDataText}>
-            Nenhuma assistência técnica disponível com os filtros selecionados.
+          <Text style={estilos.textoNenhum}>
+            Nenhum técnico encontrado com os filtros aplicados.
           </Text>
         )}
       </View>
-      <Modal visible={showPopup} transparent animationType="slide">
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>
-              Disponibilidade de {selectedAssistenciaTecnica?.nome}
-            </Text>
-            <Text>Selecione a data e o horário desejado:</Text>
 
-            <TouchableOpacity
-              onPress={() => setShowStartPicker(true)}
-              style={styles.dateButton}
-            >
-              <Text>
-                {selectedStartDate
-                  ? selectedStartDate.toLocaleString("pt-BR", {
-                      year: "numeric",
-                      month: "numeric",
-                      day: "numeric",
-                      hour: "numeric",
-                      minute: "numeric",
-                    })
-                  : "Data e Hora Inicial"}
-              </Text>
-            </TouchableOpacity>
-            {showStartPicker && (
-              <DateTimePicker
-                value={selectedStartDate || new Date()}
-                mode="datetime"
-                display="default"
-                minimumDate={new Date()}
-                onChange={(event, date) => {
-                  const currentDate = date || selectedStartDate;
-                  setShowStartPicker(Platform.OS === "ios");
-                  if (currentDate && !isDateOccupied(currentDate)) {
-                    setSelectedStartDate(currentDate);
-                    if (selectedEndDate && currentDate > selectedEndDate) {
-                      setSelectedEndDate(null);
-                    }
-                  } else if (currentDate && isDateOccupied(currentDate)) {
-                    console.warn("Data inicial selecionada está ocupada.");
-                    
-                  }
-                }}
-              />
-            )}
-
-            <TouchableOpacity
-              onPress={() => setShowEndPicker(true)}
-              style={[
-                styles.dateButton,
-                !selectedStartDate && styles.disabledButton,
-              ]}
-              disabled={!selectedStartDate}
-            >
-              <Text style={selectedStartDate ? {} : styles.disabledButtonText}>
-                {selectedEndDate
-                  ? selectedEndDate.toLocaleString("pt-BR", {
-                      year: "numeric",
-                      month: "numeric",
-                      day: "numeric",
-                      hour: "numeric",
-                      minute: "numeric",
-                    })
-                  : "Data e Hora Final"}
-              </Text>
-            </TouchableOpacity>
-            {showEndPicker && selectedStartDate && (
-              <DateTimePicker
-                value={selectedEndDate || selectedStartDate}
-                mode="datetime"
-                display="default"
-                minimumDate={selectedStartDate}
-                onChange={(event, date) => {
-                  const currentDate = date || selectedEndDate;
-                  setShowEndPicker(Platform.OS === "ios");
-                  setSelectedEndDate(currentDate);
-                }}
-              />
-            )}
-
-            <TextInput
-              style={styles.textArea}
-              value={observacoes}
-              onChangeText={setObservacoes}
-              placeholder="Adicione observações (opcional)"
-              multiline
-            />
-
-            <View style={styles.modalButtons}>
-              <TouchableOpacity
-                style={styles.cancelButton}
-                onPress={closePopup}
-              >
-                <Text>Cancelar</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.confirmButton,
-                  (!selectedStartDate ||
-                    !selectedEndDate ||
-                    selectedEndDate <= selectedStartDate) &&
-                    styles.disabledButton,
-                ]}
-                onPress={handleConfirmation}
-                disabled={
-                  !selectedStartDate ||
-                  !selectedEndDate ||
-                  selectedEndDate <= selectedStartDate
-                }
-              >
-                <Text style={styles.buttonText}>Confirmar</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
-      <Modal visible={showConfirmationPopup} transparent animationType="slide">
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Contratação Confirmada!</Text>
-            <Text>
-              A contratação da assistência técnica{" "}
-              {selectedAssistenciaTecnica?.nome} foi realizada com sucesso!
-            </Text>
-            <TouchableOpacity
-              style={styles.confirmButton}
-              onPress={handleRedirect}
-            >
-              <Text style={styles.buttonText}>Ver Solicitações</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
+      {prestadorSelecionado && (
+        <CalendarioContratacao
+          visivel={modalCalendarioVisivel}
+          fecharModal={() => setModalCalendarioVisivel(false)}
+          datasOcupadas={datasOcupadas}
+          dataInicio={dataInicio}
+          definirDataInicio={setDataInicio}
+          dataFim={dataFim}
+          definirDataFim={setDataFim}
+          mostrarHorarioInicial={mostrarHorarioInicial}
+          definirMostrarHorarioInicial={setMostrarHorarioInicial}
+          mostrarHorarioFinal={mostrarHorarioFinal}
+          definirMostrarHorarioFinal={setMostrarHorarioFinal}
+          horarioInicial={horarioInicial}
+          definirHorarioInicial={setHorarioInicial}
+          horarioFinal={horarioFinal}
+          definirHorarioFinal={setHorarioFinal}
+          observacoes={observacoes}
+          definirObservacoes={setObservacoes}
+          confirmarContratacao={confirmarContratacao}
+          prestadorSelecionado={prestadorSelecionado}
+          popupConfirmacao={popupConfirmacao}
+          definirPopupConfirmacao={setPopupConfirmacao}
+          redirecionar={redirecionar}
+        />
+      )}
     </ScrollView>
   );
-};
+}
 
-const styles = StyleSheet.create({
+const estilos = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#075985" },
-  content: { padding: 20 },
-  title: {
-    fontSize: 24,
+  scrollContentContainer: { paddingBottom: 30 },
+  conteudo: { paddingHorizontal: 20, paddingTop: 10 },
+  titulo: {
+    fontSize: 26,
     fontWeight: "bold",
     color: "#fff",
     textAlign: "center",
-    marginBottom: 10,
+    marginBottom: 8,
   },
-  subtitle: {
+  subtitulo: {
     fontSize: 16,
-    color: "#fff",
+    color: "#e0f2fe",
     textAlign: "center",
-    marginBottom: 20,
+    marginBottom: 25,
   },
-  sectionTitle: {
-    fontSize: 20,
+  subtitulo2: {
+    fontSize: 22,
     fontWeight: "600",
     color: "#fff",
     textAlign: "center",
-    marginBottom: 15,
-  },
-  filterContainer: { marginBottom: 20 },
-  input: {
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 5,
-    padding: 10,
-    marginBottom: 10,
-    backgroundColor: "#fff",
-  },
-  dateButton: {
-    padding: 10,
-    backgroundColor: "#e5e7eb",
-    borderRadius: 5,
-    marginBottom: 10,
-    alignItems: "center",
-  },
-  filterButton: {
-    backgroundColor: "#0284c7",
-    padding: 10,
-    borderRadius: 5,
-    alignItems: "center",
+    marginBottom: 20,
+    marginTop: 5,
   },
   card: {
     backgroundColor: "#fff",
-    padding: 15,
-    borderRadius: 10,
-    marginBottom: 15,
+    padding: 18,
+    borderRadius: 12,
+    marginBottom: 18,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.1,
     shadowRadius: 5,
     elevation: 3,
   },
-  cardHeader: { flexDirection: "row", justifyContent: "space-between" },
-  cardTitle: { fontSize: 18, fontWeight: "bold", color: "#075985" },
-  cardText: { color: "#4b5563", marginBottom: 5 },
-  cardPrice: { fontWeight: "600", color: "#0284c7", marginTop: 5 },
-  whatsappButton: { marginTop: 10 },
-  whatsappText: { color: "#22c55e", fontWeight: "bold" },
-  hireButton: {
-    backgroundColor: "#0284c7",
-    padding: 10,
-    borderRadius: 5,
-    alignItems: "center",
-    marginTop: 10,
-  },
-  buttonText: { color: "#fff", fontWeight: "600" },
-  noDataText: { color: "#fff", textAlign: "center", marginTop: 20 },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.5)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  modalContent: {
-    backgroundColor: "#fff",
-    padding: 20,
-    borderRadius: 10,
-    width: "90%",
-    maxWidth: 400,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-    color: "#075985",
-    marginBottom: 15,
-    textAlign: "center",
-  },
-  textArea: {
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 5,
-    padding: 10,
-    height: 100,
-    marginBottom: 15,
-    textAlignVertical: "top",
-  },
-  modalButtons: {
+  cardHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  cardTitle: { fontSize: 20, fontWeight: "bold", color: "#075985" },
+  cardText: { fontSize: 15, color: "#475569", lineHeight: 22, marginBottom: 5 },
+  cardPrice: {
+    fontSize: 17,
+    fontWeight: "700",
+    color: "#0369a1",
+    marginTop: 8,
+    marginBottom: 12,
+  },
+  botaoWhatsapp: {
+    backgroundColor: "#25D366",
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    borderRadius: 8,
+    alignItems: "center",
     marginTop: 10,
+    flexDirection: "row",
+    justifyContent: "center",
   },
-  cancelButton: {
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    backgroundColor: "#d1d5db",
-    borderRadius: 5,
-    marginRight: 10,
+  textoBotaoWhatsapp: {
+    color: "#fff",
+    fontWeight: "600",
+    fontSize: 15,
+    marginLeft: 8,
   },
-  confirmButton: {
-    paddingVertical: 10,
-    paddingHorizontal: 20,
+  botaoContratar: {
     backgroundColor: "#0284c7",
-    borderRadius: 5,
+    paddingVertical: 12,
+    paddingHorizontal: 15,
+    borderRadius: 8,
+    alignItems: "center",
+    marginTop: 12,
   },
-  disabledButton: {
-    backgroundColor: "#9ca3af",
-    opacity: 0.7,
+  textoBotao: { color: "#fff", fontWeight: "600", fontSize: 16 },
+  textoNenhum: {
+    color: "#bae6fd",
+    textAlign: "center",
+    fontSize: 16,
+    paddingVertical: 20,
   },
-  disabledButtonText: {
-    color: "#6b7280",
+  ratingContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 8,
+    marginBottom: 8,
   },
+  star: { fontSize: 18, marginRight: 3 },
+  starFilled: { color: "#FBBF24" },
+  starEmpty: { color: "#D1D5DB" },
+  ratingText: { marginLeft: 6, color: "#4B5563", fontSize: 14 },
 });
-
-export default AssistenciaTecnica;
