@@ -169,10 +169,10 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   card: {
-    width: "31%", // Ajustado para 3 colunas
+    width: "31%", 
     backgroundColor: "#f1f5f9",
     borderRadius: 12,
-    paddingVertical: 20, // Padding superior e inferior mantidos
+    paddingVertical: 20, 
     paddingHorizontal: 12, 
     alignItems: "center",
     marginBottom: 16,

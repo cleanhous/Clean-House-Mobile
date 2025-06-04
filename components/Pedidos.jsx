@@ -1,3 +1,5 @@
+// Pedidos.js
+
 import React, { useEffect, useState } from "react";
 import {
   View,
@@ -7,12 +9,14 @@ import {
   Modal,
   StyleSheet,
   Alert,
+  TextInput,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import NavBarHome from "./NavBarHome.jsx";
 import api from "../services/api.js";
 import ConfettiCannon from "react-native-confetti-cannon";
+import { Calendar } from "react-native-calendars";
 
 const Pedidos = () => {
   const navigation = useNavigation();
@@ -21,6 +25,13 @@ const Pedidos = () => {
   const [selectedContrato, setSelectedContrato] = useState(null);
   const [estrelas, setEstrelas] = useState(0);
   const [showConfetti, setShowConfetti] = useState(false);
+
+  // Filtros
+  const [filtroStatus, setFiltroStatus] = useState("todos");
+  const [filtroNome, setFiltroNome] = useState("");
+  const [dataInicioFiltro, setDataInicioFiltro] = useState(null);
+  const [dataFimFiltro, setDataFimFiltro] = useState(null);
+  const [selecionandoData, setSelecionandoData] = useState(false);
 
   const fetchContratos = async () => {
     try {
@@ -52,7 +63,6 @@ const Pedidos = () => {
           },
         }
       );
-      console.log("Contrato cancelado com sucesso!");
       fetchContratos();
     } catch (error) {
       console.error("Erro ao cancelar contrato:", error);
@@ -89,7 +99,6 @@ const Pedidos = () => {
           },
         }
       );
-      console.log("Avaliação enviada com sucesso!");
       setShowModal(false);
       setEstrelas(0);
       setShowConfetti(true);
@@ -108,13 +117,150 @@ const Pedidos = () => {
     fetchContratos();
   }, []);
 
+  const getIntervalDates = (start, end) => {
+    const interval = {};
+    let atual = new Date(start);
+    const endDate = new Date(end);
+    while (atual <= endDate) {
+      const key = atual.toISOString().split("T")[0];
+      interval[key] = {
+        color: "#7dd3fc",
+        textColor: "#000",
+      };
+      atual.setDate(atual.getDate() + 1);
+    }
+    return interval;
+  };
+
   return (
     <View style={styles.container}>
       <NavBarHome />
       <ScrollView style={styles.scrollView}>
         <Text style={styles.title}>Histórico de serviços</Text>
-        {contratos.length > 0 ? (
-          contratos.map((contrato, index) => (
+
+        {/* Filtros */}
+        <View style={styles.filtrosContainer}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            {["todos", "ativo", "cancelado", "avaliado"].map((status) => (
+              <TouchableOpacity
+                key={status}
+                style={[
+                  styles.filtroBotao,
+                  filtroStatus === status && styles.filtroSelecionado,
+                ]}
+                onPress={() => setFiltroStatus(status)}
+              >
+                <Text style={styles.filtroTexto}>{status}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+          <TextInput
+            placeholder="Buscar por nome"
+            placeholderTextColor="#ccc"
+            style={styles.inputFiltro}
+            value={filtroNome}
+            onChangeText={setFiltroNome}
+          />
+          <View style={{ flexDirection: "row", gap: 8, marginBottom: 8 }}>
+            <TouchableOpacity
+              onPress={() => setSelecionandoData(true)}
+              style={styles.dataButton}
+            >
+              <Text style={styles.dataButtonText}>
+                {dataInicioFiltro
+                  ? `Período: ${dataInicioFiltro}${
+                      dataFimFiltro ? ` até ${dataFimFiltro}` : ""
+                    }`
+                  : "Selecionar período"}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => {
+                setDataInicioFiltro(null);
+                setDataFimFiltro(null);
+                setFiltroStatus("todos");
+                setFiltroNome("");
+              }}
+              style={[styles.dataButton, { backgroundColor: "#dc2626" }]}
+            >
+              <Text style={[styles.dataButtonText, { color: "#fff" }]}>
+                Limpar filtros
+              </Text>
+            </TouchableOpacity>
+          </View>
+          {selecionandoData && (
+            <View>
+              <Calendar
+                onDayPress={(day) => {
+                  const data = day.dateString;
+                  if (!dataInicioFiltro || (dataInicioFiltro && dataFimFiltro)) {
+                    setDataInicioFiltro(data);
+                    setDataFimFiltro(null);
+                  } else if (new Date(data) < new Date(dataInicioFiltro)) {
+                    setDataInicioFiltro(data);
+                  } else {
+                    setDataFimFiltro(data);
+                  }
+                }}
+                markedDates={{
+                  ...(dataInicioFiltro && {
+                    [dataInicioFiltro]: {
+                      startingDay: true,
+                      color: "#0284c7",
+                      textColor: "#fff",
+                    },
+                  }),
+                  ...(dataInicioFiltro &&
+                    dataFimFiltro && {
+                      ...getIntervalDates(dataInicioFiltro, dataFimFiltro),
+                    }),
+                  ...(dataFimFiltro && {
+                    [dataFimFiltro]: {
+                      endingDay: true,
+                      color: "#0284c7",
+                      textColor: "#fff",
+                    },
+                  }),
+                }}
+                markingType="period"
+                theme={{ arrowColor: "#0284c7", todayTextColor: "#0284c7" }}
+                style={{ marginBottom: 8 }}
+              />
+              <TouchableOpacity
+                style={styles.fecharCalendarioButton}
+                onPress={() => setSelecionandoData(false)}
+              >
+                <Text style={styles.fecharCalendarioText}>Fechar calendário</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
+
+        {/* Contratos */}
+        {contratos
+          .filter((contrato) => {
+            const nomeMatch = contrato.nome
+              .toLowerCase()
+              .includes(filtroNome.toLowerCase());
+            const statusMatch =
+              filtroStatus === "todos" ||
+              (filtroStatus === "ativo" &&
+                contrato.status_id !== 3 &&
+                !contrato.avaliado) ||
+              (filtroStatus === "cancelado" && contrato.status_id === 3) ||
+              (filtroStatus === "avaliado" && contrato.avaliado);
+
+            const dataContrato = new Date(contrato.data_inicio);
+            const dentroDoPeriodo = (() => {
+              if (!dataInicioFiltro) return true;
+              const inicio = new Date(dataInicioFiltro);
+              const fim = dataFimFiltro ? new Date(dataFimFiltro) : inicio;
+              return dataContrato >= inicio && dataContrato <= fim;
+            })();
+
+            return nomeMatch && statusMatch && dentroDoPeriodo;
+          })
+          .map((contrato, index) => (
             <View key={index} style={styles.contratoContainer}>
               <Text style={styles.contratoNome}>{contrato.nome}</Text>
               <Text>
@@ -163,12 +309,10 @@ const Pedidos = () => {
                 </>
               )}
             </View>
-          ))
-        ) : (
-          <Text style={styles.noContratos}>Nenhum contrato encontrado.</Text>
-        )}
+          ))}
       </ScrollView>
 
+      {/* Modal de avaliação */}
       <Modal visible={showModal} transparent={true} animationType="slide">
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
@@ -217,20 +361,47 @@ const Pedidos = () => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#0ea5e9",
-    
-  },
-  scrollView: {
-    padding: 16,
-  },
+  container: { flex: 1, backgroundColor: "#0369a1" },
+  scrollView: { padding: 16 },
   title: {
     fontSize: 24,
     fontWeight: "bold",
     color: "#fff",
     textAlign: "center",
     marginBottom: 16,
+  },
+  filtrosContainer: { marginBottom: 16 },
+  filtroBotao: {
+    backgroundColor: "#e5e7eb",
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 16,
+    marginRight: 8,
+  },
+  filtroSelecionado: {
+  backgroundColor: "#fff",
+  borderWidth: 3,
+  borderColor: "#22c55e", 
+  },
+  filtroTexto: { color: "#111827" },
+  inputFiltro: {
+    backgroundColor: "#fff",
+    padding: 8,
+    borderRadius: 8,
+    marginVertical: 8,
+    color: "#000",
+  },
+  dataButton: {
+    flex: 1,
+    backgroundColor: "#e5e7eb",
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    alignItems: "center",
+  },
+  dataButtonText: {
+    color: "#111827",
+    textAlign: "center",
   },
   contratoContainer: {
     backgroundColor: "#fff",
@@ -270,7 +441,7 @@ const styles = StyleSheet.create({
     color: "#d1d5db",
   },
   avaliarButton: {
-    backgroundColor: "#0284c7",
+    backgroundColor: "#0369a1",
     padding: 8,
     borderRadius: 8,
     marginTop: 8,
@@ -308,7 +479,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   enviarButton: {
-    backgroundColor: "#0284c7",
+    backgroundColor: "#0369a1",
     padding: 12,
     borderRadius: 8,
     marginTop: 16,
@@ -319,6 +490,17 @@ const styles = StyleSheet.create({
     marginTop: 8,
     padding: 12,
   },
+  fecharCalendarioButton: {
+  backgroundColor: "#e5e7eb",
+  paddingVertical: 10,
+  borderRadius: 8,
+  alignItems: "center",
+  marginBottom: 16,
+},
+fecharCalendarioText: {
+  color: "#0369a1",
+  fontWeight: "bold",
+}
 });
 
 export default Pedidos;
