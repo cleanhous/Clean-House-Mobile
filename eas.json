@@ -2,10 +2,6 @@
   "build": {
     "preview": {
       "android": {
-         "adaptiveIcon": {
-          "foregroundImage": "./assets/adaptive-icon.png",
-          "backgroundColor": "#ffffff"
-        },
         "buildType": "apk"
       }
     },
