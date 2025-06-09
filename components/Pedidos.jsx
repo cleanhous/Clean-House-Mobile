@@ -17,6 +17,8 @@ import NavBarHome from "./NavBarHome.jsx";
 import api from "../services/api.js";
 import ConfettiCannon from "react-native-confetti-cannon";
 import { Calendar } from "react-native-calendars";
+import { useFocusEffect } from '@react-navigation/native';
+
 
 const Pedidos = () => {
   const navigation = useNavigation();
@@ -48,6 +50,13 @@ const Pedidos = () => {
       console.error("Erro ao buscar contratos:", error);
     }
   };
+
+    useFocusEffect(
+    React.useCallback(() => {
+      fetchContratos();
+    }, [])
+  );
+
 
   const cancelarPedido = async (contratoId) => {
     try {
